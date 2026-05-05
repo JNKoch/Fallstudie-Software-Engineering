@@ -1,2 +1,2 @@
 ﻿# Fallstudie-Software-Engineering
-ToDo
+ToDo: Beschreibung der Fallstudie, Ziele, Anforderungen, etc.
