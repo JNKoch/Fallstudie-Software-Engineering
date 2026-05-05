@@ -1,0 +1,112 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(80px, 18vw) 1fr;
+  min-height: calc(100vh - 72px);
+}
+
+.marker {
+  border-right: 1px solid #111111;
+  color: #e4002b;
+  font-size: clamp(3rem, 12vw, 9rem);
+  font-weight: 700;
+  line-height: 0.85;
+  margin: 0;
+  padding: 24px;
+}
+
+.content {
+  align-self: start;
+  padding: 40px 24px 48px;
+}
+
+.content h1 {
+  font-size: clamp(2.5rem, 9vw, 7rem);
+  letter-spacing: 0;
+  line-height: 0.95;
+  margin: 24px 0;
+}
+
+.content p {
+  font-size: 1.25rem;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 720px;
+}
+
+.link {
+  color: #111111;
+  font-weight: 700;
+  text-decoration-color: #e4002b;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
+}
+
+.link:focus-visible {
+  outline: 3px solid #e4002b;
+  outline-offset: 4px;
+}
+
+.module {
+  border-top: 1px solid #111111;
+  margin-top: 40px;
+  padding-top: 40px;
+}
+
+.onlinePanel {
+  border-top: 1px solid #111111;
+  display: grid;
+  gap: 16px;
+  margin-top: 40px;
+  max-width: 720px;
+  padding-top: 24px;
+}
+
+.onlinePanel h2 {
+  font-size: 2rem;
+  line-height: 1;
+  margin: 0;
+}
+
+.onlinePanel button {
+  align-self: start;
+  background: #111111;
+  border: 1px solid #111111;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 48px;
+  padding: 12px 16px;
+}
+
+.onlinePanel button:disabled {
+  background: #ffffff;
+  color: #666666;
+  cursor: not-allowed;
+}
+
+.onlinePanel button:focus-visible {
+  outline: 3px solid #e4002b;
+  outline-offset: 4px;
+}
+
+.error {
+  color: #e4002b;
+}
+
+.module h2 {
+  font-size: 2rem;
+  line-height: 1;
+  margin: 0 0 16px;
+}
+
+@media (max-width: 720px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+
+  .marker {
+    border-bottom: 1px solid #111111;
+    border-right: 0;
+    font-size: 4rem;
+  }
+}

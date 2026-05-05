@@ -1,0 +1,38 @@
+.reference {
+  display: grid;
+  gap: 16px;
+}
+
+.reference p {
+  margin: 0;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(64px, 112px));
+  width: min(100%, 336px);
+  border-left: 1px solid #111111;
+  border-top: 1px solid #111111;
+}
+
+.cell {
+  aspect-ratio: 1;
+  background: #ffffff;
+  border: 0;
+  border-bottom: 1px solid #111111;
+  border-right: 1px solid #111111;
+  color: #111111;
+  cursor: pointer;
+  font-size: clamp(2rem, 8vw, 4rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cell:disabled {
+  cursor: default;
+}
+
+.cell:focus-visible {
+  outline: 3px solid #e4002b;
+  outline-offset: -6px;
+}

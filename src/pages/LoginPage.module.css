@@ -1,0 +1,95 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(80px, 18vw) 1fr;
+  min-height: calc(100vh - 72px);
+}
+
+.marker {
+  border-right: 1px solid #111111;
+  color: #e4002b;
+  font-size: clamp(3rem, 12vw, 9rem);
+  font-weight: 700;
+  line-height: 0.85;
+  margin: 0;
+  padding: 24px;
+}
+
+.form {
+  align-self: start;
+  display: grid;
+  gap: 16px;
+  max-width: 560px;
+  padding: 40px 24px 48px;
+}
+
+.form h1 {
+  font-size: clamp(3rem, 10vw, 7rem);
+  letter-spacing: 0;
+  line-height: 0.95;
+  margin: 0;
+}
+
+.form p {
+  font-size: 1.125rem;
+  line-height: 1.45;
+  margin: 0 0 16px;
+}
+
+.form label {
+  color: #e4002b;
+  font-weight: 700;
+}
+
+.form input {
+  border: 1px solid #111111;
+  min-height: 52px;
+  padding: 12px;
+}
+
+.form button {
+  background: #111111;
+  border: 1px solid #111111;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 52px;
+  padding: 12px 16px;
+}
+
+.form button:disabled {
+  background: #ffffff;
+  color: #666666;
+  cursor: not-allowed;
+}
+
+.form input:focus-visible,
+.form button:focus-visible {
+  outline: 3px solid #e4002b;
+  outline-offset: 4px;
+}
+
+.success,
+.error {
+  border-top: 1px solid #111111;
+  padding-top: 16px;
+}
+
+.success {
+  color: #111111;
+}
+
+.error {
+  color: #e4002b;
+}
+
+@media (max-width: 720px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+
+  .marker {
+    border-bottom: 1px solid #111111;
+    border-right: 0;
+    font-size: 4rem;
+  }
+}
