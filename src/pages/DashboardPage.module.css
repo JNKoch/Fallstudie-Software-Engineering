@@ -1,0 +1,135 @@
+.page {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: calc(100vh - 72px);
+}
+
+.intro {
+  display: grid;
+  grid-template-columns: minmax(80px, 18vw) 1fr;
+  border-bottom: 1px solid #111111;
+}
+
+.marker {
+  border-right: 1px solid #111111;
+  color: #e4002b;
+  font-size: clamp(3rem, 14vw, 11rem);
+  font-weight: 700;
+  line-height: 0.85;
+  margin: 0;
+  padding: 24px;
+}
+
+.intro div {
+  align-self: end;
+  padding: 40px 24px 48px;
+}
+
+.intro h1 {
+  font-size: clamp(3rem, 12vw, 9rem);
+  letter-spacing: 0;
+  line-height: 0.95;
+  margin: 0;
+  max-width: 980px;
+}
+
+.intro p {
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
+  line-height: 1.4;
+  margin: 24px 0 0;
+  max-width: 620px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 360px;
+  border-bottom: 1px solid #111111;
+  border-right: 1px solid #111111;
+  padding: 24px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.card h2 {
+  font-size: 2rem;
+  line-height: 1;
+  margin: 0;
+}
+
+.cardHeader span {
+  color: #e4002b;
+  font-weight: 700;
+}
+
+.card p {
+  font-size: 1.125rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.meta {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+}
+
+.meta div {
+  border-top: 1px solid #111111;
+  display: grid;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.meta dt {
+  color: #e4002b;
+  font-weight: 700;
+}
+
+.meta dd {
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: auto;
+}
+
+.link {
+  align-self: flex-start;
+  color: #111111;
+  font-weight: 700;
+  text-decoration-color: #e4002b;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
+}
+
+.link:focus-visible {
+  outline: 3px solid #e4002b;
+  outline-offset: 4px;
+}
+
+@media (max-width: 720px) {
+  .intro {
+    grid-template-columns: 1fr;
+  }
+
+  .marker {
+    border-bottom: 1px solid #111111;
+    border-right: 0;
+    font-size: 4rem;
+  }
+}

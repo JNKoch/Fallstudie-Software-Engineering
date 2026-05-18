@@ -1,0 +1,78 @@
+.shell {
+  min-height: 100vh;
+  background: #ffffff;
+  color: #111111;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  min-height: 72px;
+  border-bottom: 1px solid #111111;
+  padding: 0 24px;
+}
+
+.brand {
+  color: #111111;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.brand:focus-visible {
+  outline: 3px solid #e4002b;
+  outline-offset: 4px;
+}
+
+.account {
+  align-items: center;
+  border-left: 1px solid #111111;
+  display: flex;
+  gap: 16px;
+  min-height: 72px;
+  padding: 26px 0 0 24px;
+}
+
+.account span {
+  color: #e4002b;
+  font-weight: 700;
+}
+
+.account button {
+  background: #ffffff;
+  border: 0;
+  color: #111111;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: #e4002b;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
+}
+
+.account button:focus-visible {
+  outline: 3px solid #e4002b;
+  outline-offset: 4px;
+}
+
+.main {
+  min-height: calc(100vh - 72px);
+}
+
+.loading {
+  margin: 0;
+  padding: 24px;
+}
+
+@media (max-width: 720px) {
+  .header {
+    padding: 0 16px;
+  }
+
+  .account {
+    padding-left: 16px;
+  }
+
+}

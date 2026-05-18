@@ -1,114 +1,167 @@
 # Fallstudie-Software-Engineering
 
-## Projektüberblick
+## Projektueberblick
 
-Dieses Repository enthält eine Fallstudie für ein Software-Engineering-Projekt an der Universität. Ziel ist der Aufbau einer modularen Webplattform für digitale Brettspiele.
+Dieses Repository enthaelt eine React-TypeScript-Plattform fuer digitale Brettspiele. Die Anwendung ist fuer eine universitaere Software-Engineering-Fallstudie aufgebaut und legt den Schwerpunkt auf modulare Spielmodule, klare Schnittstellen, Online-Spielraeume und eine nachvollziehbare Architektur.
 
-Die Anwendung soll ein zentrales Dashboard bereitstellen, über das verschiedene Brettspiele erreichbar sind. Jedes Brettspiel soll eigene Regeln, Spielformate, Designs und Spiellogik besitzen können, aber über eine gemeinsame Architektur in die Plattform eingebunden werden.
+Der erste deploybare Online-Schnitt nutzt Supabase Auth mit vorbereiteten Demo-Accounts und Passwort-Login, Einladungslinks fuer Spielraeume, Postgres als dauerhafte Quelle fuer Raumzustand und Zuege sowie Supabase Realtime fuer Live-Aktualisierungen.
 
-Der Schwerpunkt liegt auf sauberer Softwarearchitektur, Erweiterbarkeit, guter User Experience und einem modernen Frontend.
-
-## Ziel der Anwendung
-
-Die Plattform soll zunächst zwei bis drei digitale Brettspiele enthalten. Später sollen weitere Spiele möglichst einfach ergänzt werden können, ohne das Dashboard oder bestehende Spielmodule stark verändern zu müssen.
-
-Die Anwendung besteht aus zwei Hauptbereichen:
-
-1. Dashboard
-   - zeigt alle verfügbaren Brettspiele
-   - stellt jedes Spiel als Karte dar
-   - enthält Titel, Beschreibung, Spieleranzahl, Schwierigkeit und kurze Regeln
-   - ermöglicht die Navigation zum jeweiligen Spiel
-   - ist responsiv und modern gestaltet
-
-2. Spielmodule
-   - jedes Spiel wird als eigenes Modul umgesetzt
-   - jedes Modul kann eigene Komponenten, Spiellogik, Typen, Styles, Hilfsfunktionen und Tests enthalten
-   - jedes Spiel wird über eine gemeinsame Schnittstelle an das Dashboard angebunden
-
-## Technologischer Rahmen
-
-Die Anwendung soll als moderne TypeScript-Webanwendung umgesetzt werden.
-
-Geplanter Stack:
+## Stack
 
 - React
 - TypeScript
 - Vite
 - React Router
-- CSS Modules, Tailwind CSS oder eine vergleichbare Styling-Lösung
-- Optional: Zustand oder React Context für globalen State
-- Optional: Vitest für Tests
+- CSS Modules
+- Vitest
+- Supabase Auth, Postgres und Realtime
+- Vercel als Hosting-Ziel
 
-Falls noch kein Projektgerüst existiert, soll eine React-TypeScript-Struktur mit Vite erstellt werden. Falls später bereits eine Struktur vorhanden ist, soll diese konsistent erweitert werden.
+## Aktueller Funktionsumfang
 
-## Architekturidee
+- Login per Supabase E-Mail und Passwort fuer vorbereitete Demo-User
+- geschuetzter App-Zugriff fuer angemeldete Nutzer
+- Dashboard mit registrierten Brettspielen
+- gemeinsame `BoardGameModule`-Schnittstelle mit optionaler Online-Unterstuetzung
+- Tic-Tac-Toe als erstes online spielbares Modul
+- Raum erstellen und Einladungslink unter `/games/tic-tac-toe/rooms/:roomId` teilen
+- Raumbeitritt fuer angemeldete Nutzer
+- persistenter Raumzustand in Postgres
+- Realtime-Subscription auf Raum- und Spieler-Aenderungen
+- Tests fuer Tic-Tac-Toe-Logik, Raumzustand, Multiplayer-Service und zentrale UI-Zustaende
 
-Die Plattform soll modular aufgebaut sein. Das Dashboard kennt nur die Metadaten und den Einstiegspunkt eines Spiels, nicht aber dessen interne Spiellogik.
+## Architektur
 
-Geplante Modulstruktur:
+Die Plattform trennt Dashboard, Routing, Auth, Multiplayer-Service und Spielmodule. Das Dashboard liest nur Metadaten aus der Registry. Spielinterne Regeln bleiben im jeweiligen Spielmodul.
 
 ```text
 src/
   app/
-  components/
+  auth/
   games/
     gameRegistry.ts
     types.ts
-    <game-name>/
-      components/
+    tic-tac-toe/
       logic/
       styles/
-      tests/
-      index.ts
+      index.tsx
+  lib/
   pages/
+  services/
   styles/
+supabase/
+  schema.sql
 ```
 
-Jedes Spiel soll eine gemeinsame Schnittstelle erfüllen, damit neue Spiele einfach registriert und im Dashboard angezeigt werden können.
+Die zentrale Schnittstelle:
 
-## Aktueller Status
+```ts
+export interface BoardGameModule {
+  id: string;
+  title: string;
+  description: string;
+  playerCount: string;
+  difficulty: "easy" | "medium" | "hard";
+  shortRules: string;
+  Component: React.ComponentType;
+  supportsOnlinePlay?: boolean;
+  createInitialState?: () => unknown;
+}
+```
 
-Das Repository befindet sich aktuell in der Planungs- und Dokumentationsphase. Ein React/Vite-Projektgerüst wurde noch nicht erstellt.
+## Setup
 
-Vor der Implementierung sollten folgende Punkte geklärt oder umgesetzt werden:
+Voraussetzungen:
 
-- Projektgerüst mit React, TypeScript und Vite erstellen
-- Routing für Dashboard und Spielseiten einrichten
-- Styling-Ansatz festlegen
-- gemeinsame Schnittstelle für Spielmodule definieren
-- erstes Spielmodul als Referenzimplementierung bauen
-- Tests und Build-Befehle dokumentieren
+- Node.js
+- npm
+- Supabase-Projekt
 
-## Rolle von Codex
-
-Codex unterstützt als Senior Software Engineer beim Entwurf und Aufbau der Anwendung. Wichtige Aufgaben sind:
-
-- Architekturentscheidungen nachvollziehbar treffen
-- wartbare TypeScript- und React-Strukturen erstellen
-- klare Schnittstellen für Spielmodule definieren
-- bestehende Struktur verbessern, wenn es dem Projekt hilft
-- Dokumentation, Tests und Verifikation aktuell halten
-
-## Nächste Schritte
-
-1. React-TypeScript-Projekt mit Vite scaffolden.
-2. React Router und Grundlayout einrichten.
-3. Dashboard-Seite erstellen.
-4. `BoardGameModule`-Schnittstelle und Game Registry definieren.
-5. Erstes Spielmodul implementieren.
-6. Weitere Spiele hinzufügen.
-7. Build, Tests und Nutzung in dieser README dokumentieren.
-
-## Verifikation
-
-Solange noch kein Projektgerüst existiert, beschränkt sich die Verifikation auf Dokumentationsprüfung und Git-Status.
-
-Nach dem Scaffolden sollen mindestens folgende Befehle dokumentiert und regelmäßig ausgeführt werden:
+Installation:
 
 ```bash
 npm install
+```
+
+Env-Datei anlegen:
+
+```bash
+cp .env.example .env
+```
+
+Folgende Werte aus Supabase eintragen:
+
+```bash
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_PUBLISHABLE_KEY=...
+```
+
+Supabase-Schema einrichten:
+
+1. Supabase-Projekt oeffnen.
+2. SQL Editor oeffnen.
+3. Inhalt von `supabase/schema.sql` ausfuehren.
+4. Unter Authentication im Supabase Dashboard Demo-User manuell anlegen.
+5. Fuer jeden Demo-User eine E-Mail-Adresse und ein Passwort setzen.
+6. Falls E-Mail-Bestaetigung aktiv ist, die Demo-User im Dashboard bestaetigen oder die Bestaetigung fuer die Kursdemo deaktivieren.
+
+Der normale Login nutzt `signInWithPassword` und sendet bei der Anmeldung keine E-Mail. Magic Links sind fuer die Demo nicht der empfohlene Standardpfad.
+
+Entwicklungsserver starten:
+
+```bash
 npm run dev
+```
+
+Lokaler Test ohne Supabase:
+
+- Wenn keine Supabase-Env-Vars gesetzt sind und der Vite-Dev-Server laeuft, zeigt die Login-Seite den Button `Lokal testen`.
+- Dieser Modus erstellt nur eine lokale Demo-Session im Browser.
+- Dashboard, Navigation und Spielseiten koennen damit getestet werden.
+- Echte Raum-Persistenz, Passwort-Login und Realtime-Multiplayer brauchen weiterhin ein Supabase-Projekt.
+
+Produktionsbuild:
+
+```bash
 npm run build
+```
+
+Tests:
+
+```bash
 npm test
 ```
+
+Preview:
+
+```bash
+npm run preview
+```
+
+## Vercel Deployment
+
+Das Projekt ist als Vite-SPA vorbereitet. `vercel.json` leitet Client-Routen auf `index.html` um, damit Einladungslinks wie `/games/tic-tac-toe/rooms/:roomId` direkt geoeffnet werden koennen.
+
+In Vercel muessen diese Environment Variables gesetzt werden:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+
+Fuer den Passwort-Login sind keine Login-Redirects noetig. Falls spaeter wieder E-Mail-basierte Auth-Flows genutzt werden, muss die Vercel-Domain in Supabase als Redirect URL fuer Auth eingetragen werden.
+
+## Styling-Entscheidung
+
+Die App nutzt CSS Modules. Die visuelle Richtung bleibt Swiss-inspiriert: weisse Flaechen, schwarze 1px-Regeln, linksbuendige Typografie und der rote Akzent `#E4002B`. Dadurch bleibt das Interface ruhig, gut lesbar und fuer weitere Spielmodule erweiterbar.
+
+## Bekannte Grenzen
+
+- Die Spielregeln werden aktuell clientseitig angewendet. Fuer eine robuste produktive Version sollten Zuege serverseitig per Postgres RPC oder Edge Function validiert werden.
+- Die erste Online-Version ist fuer kleine Freundesgruppen und die Kursdemo gedacht, nicht fuer kompetitives oder cheat-sicheres Spiel.
+- Raumbeitritt und Symbolvergabe sind bewusst einfach gehalten und koennen spaeter ueber RPC atomar gemacht werden.
+
+## Verifikation
+
+Zuletzt verifiziert:
+
+- `npm.cmd test`: 20 Tests erfolgreich
+- `npm.cmd run build`: Produktionsbuild erfolgreich
