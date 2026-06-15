@@ -4,7 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { getGameById } from "../games/gameRegistry";
 import { TicTacToeBoard } from "../games/tic-tac-toe";
-import type { TicTacToeState, TicTacToeSymbol } from "../games/tic-tac-toe/logic/ticTacToeLogic";
+import type { TicTacToeState } from "../games/tic-tac-toe/logic/ticTacToeLogic";
 import { createAuthedMultiplayerService, type GameRoom } from "../services/multiplayerService";
 import styles from "./RoomPage.module.css";
 
@@ -56,12 +56,9 @@ export function RoomPage() {
     }
 
     setError("");
-    const usedSymbols = new Set(room.room_players?.map((player) => player.symbol));
-    const symbol: TicTacToeSymbol = usedSymbols.has("X") ? "O" : "X";
-    const order = symbol === "X" ? 1 : 2;
 
     try {
-      await service.joinRoom(roomId, symbol, order);
+      await service.joinRoom(roomId);
       await loadRoom();
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "Raum konnte nicht betreten werden.");

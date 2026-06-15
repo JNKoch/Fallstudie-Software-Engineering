@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabaseClient } from "../lib/supabaseClient";
-import { applyRoomMove } from "./roomState";
 
 export interface RoomPlayer {
   user_id: string;
@@ -16,6 +15,7 @@ export interface GameRoom {
   state: unknown;
   current_player: "X" | "O" | null;
   winner: string | null;
+  room_revision: number;
   room_players?: RoomPlayer[];
 }
 
@@ -24,7 +24,7 @@ interface QueryResult<T> {
   error: { message: string } | null;
 }
 
-type LooseClient = Pick<SupabaseClient, "from" | "channel" | "removeChannel">;
+type LooseClient = Pick<SupabaseClient, "from" | "channel" | "removeChannel" | "rpc">;
 
 function requireSupabase(client: LooseClient | null): LooseClient {
   if (!client) {
@@ -59,54 +59,20 @@ function assertResult<T>(result: QueryResult<T>): T {
 export function createMultiplayerService(client: LooseClient | null, getUserId: () => string | null) {
   return {
     async createRoom(gameId: string, initialState: unknown) {
-      const userId = ensureUserId(getUserId);
-      const result = (await requireSupabase(client)
-        .from("game_rooms")
-        .insert({
-          created_by: userId,
-          game_id: gameId,
-          state: initialState,
-          status: "waiting",
-          current_player: "X",
-          winner: null,
-        })
-        .select("id")
-        .single()) as QueryResult<{ id: string }>;
+      ensureUserId(getUserId);
+      const result = (await requireSupabase(client).rpc("create_game_room", {
+        p_game_id: gameId,
+        p_initial_state: initialState,
+      })) as QueryResult<string>;
 
-      const room = assertResult(result);
-
-      const membershipResult = (await requireSupabase(client)
-        .from("room_players")
-        .insert({
-          room_id: room.id,
-          user_id: userId,
-          symbol: "X",
-          player_order: 1,
-        })
-        .select("room_id, symbol")
-        .single()) as QueryResult<{ room_id: string; symbol: "X" }>;
-
-      assertResult(membershipResult);
-
-      return room;
+      return { id: assertResult(result) };
     },
 
-    async joinRoom(roomId: string, symbol: "X" | "O" = "O", playerOrder = 2) {
-      const userId = ensureUserId(getUserId);
-      const result = (await requireSupabase(client)
-        .from("room_players")
-        .insert({
-          room_id: roomId,
-          user_id: userId,
-          symbol,
-          player_order: playerOrder,
-        })
-        .select("room_id, symbol")
-        .single()) as QueryResult<{ room_id: string; symbol: "X" | "O" }>;
-
-      if (symbol === "O") {
-        await requireSupabase(client).from("game_rooms").update({ status: "active" }).eq("id", roomId);
-      }
+    async joinRoom(roomId: string) {
+      ensureUserId(getUserId);
+      const result = (await requireSupabase(client).rpc("join_game_room", {
+        p_room_id: roomId,
+      })) as QueryResult<{ room_id: string; symbol: "X" | "O" }>;
 
       return assertResult(result);
     },
@@ -114,7 +80,7 @@ export function createMultiplayerService(client: LooseClient | null, getUserId: 
     async loadRoom(roomId: string) {
       const result = (await requireSupabase(client)
         .from("game_rooms")
-        .select("id, game_id, status, state, current_player, winner, room_players(user_id, symbol, player_order)")
+        .select("id, game_id, status, state, current_player, winner, room_revision, room_players(user_id, symbol, player_order)")
         .eq("id", roomId)
         .single()) as QueryResult<GameRoom>;
 
@@ -138,29 +104,39 @@ export function createMultiplayerService(client: LooseClient | null, getUserId: 
         throw new Error(`${room.current_player} ist am Zug.`);
       }
 
-      const nextState = applyRoomMove(room.state, room.game_id, movePayload);
-      const nextRoomState = nextState as { currentPlayer?: "X" | "O"; winner?: string | null; status?: string };
-      const userId = ensureUserId(getUserId);
+      ensureUserId(getUserId);
 
-      await requireSupabase(client).from("game_moves").insert({
-        room_id: room.id,
-        user_id: userId,
-        move_payload: movePayload,
-      });
+      if (room.game_id !== "tic-tac-toe") {
+        throw new Error("Dieses Spiel unterstuetzt noch keine Online-Zuege.");
+      }
 
-      const result = (await requireSupabase(client)
-        .from("game_rooms")
-        .update({
-          state: nextState,
-          current_player: nextRoomState.currentPlayer ?? room.current_player,
-          winner: nextRoomState.winner ?? null,
-          status: nextRoomState.status === "playing" ? "active" : "finished",
-        })
-        .eq("id", room.id)
-        .select("id, game_id, status, state, current_player, winner, room_players(user_id, symbol, player_order)")
-        .single()) as QueryResult<GameRoom>;
+      const cellIndex =
+        typeof movePayload === "object" &&
+        movePayload !== null &&
+        "cellIndex" in movePayload &&
+        typeof movePayload.cellIndex === "number"
+          ? movePayload.cellIndex
+          : null;
 
-      return assertResult(result);
+      if (cellIndex === null) {
+        throw new Error("Der Zug ist ungueltig.");
+      }
+
+      const result = (await requireSupabase(client).rpc("submit_tic_tac_toe_move", {
+        p_room_id: room.id,
+        p_expected_room_revision: room.room_revision,
+        p_cell_index: cellIndex,
+      })) as QueryResult<number>;
+
+      assertResult(result);
+
+      const updatedRoom = await this.loadRoom(room.id);
+
+      if (!updatedRoom) {
+        throw new Error("Raum konnte nach dem Zug nicht geladen werden.");
+      }
+
+      return updatedRoom;
     },
 
     subscribeToRoom(roomId: string, onChange: () => void) {
