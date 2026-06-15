@@ -7,6 +7,30 @@
   margin: 0;
 }
 
+.status {
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.resetButton {
+  border: 1px solid #111111;
+  background: #ffffff;
+  color: #111111;
+  cursor: pointer;
+  font: inherit;
+  padding: 10px 16px;
+}
+
+.resetButton:focus-visible {
+  outline: 3px solid #e4002b;
+  outline-offset: 2px;
+}
+
 .board {
   display: grid;
   grid-template-columns: repeat(3, minmax(64px, 112px));
@@ -35,4 +59,8 @@
 .cell:focus-visible {
   outline: 3px solid #e4002b;
   outline-offset: -6px;
+}
+
+.error {
+  color: #e4002b;
 }

@@ -1,5 +1,8 @@
+import { useState } from "react";
+
 import type { BoardGameModule } from "../types";
 import {
+  applyTicTacToeMove,
   createInitialTicTacToeState,
   type TicTacToeState,
   type TicTacToeSymbol,
@@ -7,13 +10,48 @@ import {
 import styles from "./styles/TicTacToe.module.css";
 
 function TicTacToeGame() {
-  const state = createInitialTicTacToeState();
+  const [state, setState] = useState(createInitialTicTacToeState);
+  const [error, setError] = useState("");
+
+  const statusText =
+    state.status === "won"
+      ? `${state.winner} hat gewonnen.`
+      : state.status === "draw"
+        ? "Unentschieden."
+        : `${state.currentPlayer} ist am Zug.`;
+
+  function handleMove(cellIndex: number) {
+    try {
+      setError("");
+      setState((currentState) =>
+        applyTicTacToeMove(currentState, {
+          cellIndex,
+          symbol: currentState.currentPlayer,
+        }),
+      );
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Zug konnte nicht ausgefuehrt werden.");
+    }
+  }
+
+  function handleReset() {
+    setError("");
+    setState(createInitialTicTacToeState());
+  }
 
   return (
     <section className={styles.reference} aria-labelledby="tic-tac-toe-title">
       <h2 id="tic-tac-toe-title">Tic-Tac-Toe</h2>
       <p>Online spielbares Referenzmodul fuer die Plattformstruktur.</p>
-      <TicTacToeBoard state={state} />
+      <p>Lokales Spiel fuer zwei Spieler auf einem Geraet.</p>
+      <p className={styles.status}>{statusText}</p>
+      <div className={styles.actions}>
+        <button className={styles.resetButton} onClick={handleReset} type="button">
+          Neues Spiel
+        </button>
+      </div>
+      <TicTacToeBoard onMove={handleMove} state={state} />
+      {error ? <p className={styles.error}>{error}</p> : null}
     </section>
   );
 }
@@ -35,7 +73,13 @@ export function TicTacToeBoard({
         <button
           aria-label={`Feld ${index + 1}`}
           className={styles.cell}
-          disabled={disabled || Boolean(cell) || !onMove || playerSymbol !== state.currentPlayer}
+          disabled={
+            disabled ||
+            state.status !== "playing" ||
+            Boolean(cell) ||
+            !onMove ||
+            (playerSymbol !== undefined && playerSymbol !== state.currentPlayer)
+          }
           key={index}
           onClick={() => onMove?.(index)}
           type="button"
