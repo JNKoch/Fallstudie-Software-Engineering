@@ -13,6 +13,19 @@ describe("ConnectFour offline module", () => {
     expect(screen.getByRole("button", { name: "Neues Spiel" })).toBeInTheDocument();
   });
 
+  it("renders column selectors below the board in column order", () => {
+    const Component = connectFourModule.Component;
+
+    render(<Component />);
+
+    const board = screen.getByRole("grid", { name: "4 Gewinnt Spielfeld" });
+    const selectors = screen.getByLabelText("Spaltenauswahl");
+    const selectorButtons = screen.getAllByRole("button", { name: /Stein in Spalte \d werfen/ });
+
+    expect(board.compareDocumentPosition(selectors) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(selectorButtons.map((button) => button.textContent)).toEqual(["1", "2", "3", "4", "5", "6", "7"]);
+  });
+
   it("applies local moves and switches turns", () => {
     const Component = connectFourModule.Component;
 

@@ -71,27 +71,7 @@ export function ConnectFourBoard({
   disabled?: boolean;
 }) {
   return (
-    <div>
-      <div className={styles.dropControls} aria-label="Spaltenauswahl">
-        {Array.from({ length: CONNECT_FOUR_COLUMNS }, (_, columnIndex) => (
-          <button
-            aria-label={`Stein in Spalte ${columnIndex + 1} werfen`}
-            className={styles.dropButton}
-            disabled={
-              disabled ||
-              state.status !== "playing" ||
-              !onMove ||
-              isConnectFourColumnFull(state, columnIndex) ||
-              (playerSymbol !== undefined && playerSymbol !== state.currentPlayer)
-            }
-            key={columnIndex}
-            onClick={() => onMove?.(columnIndex)}
-            type="button"
-          >
-            {columnIndex + 1}
-          </button>
-        ))}
-      </div>
+    <div className={styles.boardArea}>
       <div className={styles.board} role="grid" aria-label="4 Gewinnt Spielfeld">
         {state.board.map((cell, index) => {
           const rowIndex = Math.floor(index / CONNECT_FOUR_COLUMNS);
@@ -112,6 +92,26 @@ export function ConnectFourBoard({
             </div>
           );
         })}
+      </div>
+      <div className={styles.dropControls} aria-label="Spaltenauswahl">
+        {Array.from({ length: CONNECT_FOUR_COLUMNS }, (_, columnIndex) => (
+          <button
+            aria-label={`Stein in Spalte ${columnIndex + 1} werfen`}
+            className={styles.dropButton}
+            disabled={
+              disabled ||
+              state.status !== "playing" ||
+              !onMove ||
+              isConnectFourColumnFull(state, columnIndex) ||
+              (playerSymbol !== undefined && playerSymbol !== state.currentPlayer)
+            }
+            key={columnIndex}
+            onClick={() => onMove?.(columnIndex)}
+            type="button"
+          >
+            {columnIndex + 1}
+          </button>
+        ))}
       </div>
     </div>
   );
