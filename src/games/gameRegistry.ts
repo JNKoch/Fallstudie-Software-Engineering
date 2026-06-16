@@ -1,4 +1,5 @@
 import { ticTacToeModule } from "./tic-tac-toe";
+import { connectFourModule } from "./connect-four";
 import type { BoardGameModule } from "./types";
 
 export const gameRegistry: BoardGameModule[] = [ticTacToeModule];
