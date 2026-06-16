@@ -1,0 +1,92 @@
+.reference {
+  display: grid;
+  gap: 16px;
+}
+
+.reference p {
+  margin: 0;
+}
+
+.status {
+  font-weight: 600;
+}
+
+.actions,
+.dropControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dropControls {
+  flex-wrap: wrap;
+}
+
+.resetButton,
+.dropButton {
+  border: 1px solid #111111;
+  background: #ffffff;
+  color: #111111;
+  cursor: pointer;
+  font: inherit;
+  padding: 10px 16px;
+}
+
+.dropButton {
+  min-width: 44px;
+  padding-inline: 12px;
+}
+
+.resetButton:focus-visible,
+.dropButton:focus-visible {
+  outline: 3px solid #e4002b;
+  outline-offset: 2px;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(36px, 64px));
+  gap: 6px;
+  width: min(100%, 532px);
+  background: #111111;
+  border: 1px solid #111111;
+  padding: 8px;
+}
+
+.cell {
+  aspect-ratio: 1;
+  align-items: center;
+  background: #ffffff;
+  border-radius: 999px;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.disc {
+  border-radius: 999px;
+  display: block;
+  height: 82%;
+  width: 82%;
+}
+
+.red {
+  background: #e4002b;
+}
+
+.yellow {
+  background: #ffd43b;
+}
+
+.empty {
+  background: transparent;
+}
+
+.dropButton:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.error {
+  color: #e4002b;
+}
