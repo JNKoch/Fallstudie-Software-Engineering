@@ -317,6 +317,80 @@ begin
 end;
 $$;
 
+create or replace function public.restart_tic_tac_toe_room(
+  p_room_id uuid,
+  p_expected_room_revision integer
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  _user_id uuid := auth.uid();
+  _room public.game_rooms%rowtype;
+  _next_status text;
+  _next_revision integer;
+begin
+  if _user_id is null then
+    raise exception 'Bitte melde dich an.';
+  end if;
+
+  select *
+  into _room
+  from public.game_rooms
+  where id = p_room_id
+  for update;
+
+  if not found then
+    raise exception 'Raum nicht gefunden.';
+  end if;
+
+  if _room.game_id <> 'tic-tac-toe' then
+    raise exception 'Dieses Spiel unterstuetzt noch keine neue Runde.';
+  end if;
+
+  if _room.room_revision <> p_expected_room_revision then
+    raise exception 'Der Raum wurde bereits aktualisiert. Bitte lade den Raum neu.';
+  end if;
+
+  if not exists (
+    select 1
+    from public.room_players
+    where room_players.room_id = p_room_id
+      and room_players.user_id = _user_id
+  ) then
+    raise exception 'Du bist nicht Teil dieses Raums.';
+  end if;
+
+  _next_status := case
+    when (
+      select count(*)
+      from public.room_players
+      where room_players.room_id = p_room_id
+    ) >= 2 then 'active'
+    else 'waiting'
+  end;
+
+  update public.game_rooms
+  set
+    status = _next_status,
+    state = jsonb_build_object(
+      'board', jsonb_build_array(null, null, null, null, null, null, null, null, null),
+      'currentPlayer', 'X',
+      'status', 'playing',
+      'winner', null
+    ),
+    current_player = 'X',
+    winner = null,
+    room_revision = room_revision + 1
+  where id = p_room_id
+  returning room_revision into _next_revision;
+
+  return _next_revision;
+end;
+$$;
+
 drop trigger if exists set_game_rooms_updated_at on public.game_rooms;
 create trigger set_game_rooms_updated_at
 before update on public.game_rooms
@@ -395,6 +469,7 @@ grant execute on function public.is_room_waiting(uuid) to authenticated;
 grant execute on function public.create_game_room(text, jsonb) to authenticated;
 grant execute on function public.join_game_room(uuid) to authenticated;
 grant execute on function public.submit_tic_tac_toe_move(uuid, integer, integer) to authenticated;
+grant execute on function public.restart_tic_tac_toe_room(uuid, integer) to authenticated;
 
 do $$
 begin
