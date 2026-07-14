@@ -16,6 +16,7 @@ export function RoomPage() {
   const [room, setRoom] = useState<GameRoom | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
   const [moveError, setMoveError] = useState("");
 
   const loadRoom = useCallback(async () => {
@@ -23,9 +24,16 @@ export function RoomPage() {
       return;
     }
 
-    const nextRoom = await service.loadRoom(roomId);
-    setRoom(nextRoom);
-    setIsLoading(false);
+    try {
+      const nextRoom = await service.loadRoom(roomId);
+      setRoom(nextRoom);
+      setLoadError("");
+    } catch (nextError) {
+      setRoom(null);
+      setLoadError(nextError instanceof Error ? nextError.message : "Raum konnte nicht geladen werden.");
+    } finally {
+      setIsLoading(false);
+    }
   }, [roomId, service]);
 
   useEffect(() => {
@@ -104,6 +112,21 @@ export function RoomPage() {
         <p className={styles.marker}>03</p>
         <div className={styles.content}>
           <h1 id="room-loading-title">Raum wird geladen</h1>
+        </div>
+      </section>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <section className={styles.page} aria-labelledby="room-load-error-title">
+        <p className={styles.marker}>404</p>
+        <div className={styles.content}>
+          <h1 id="room-load-error-title">Raum konnte nicht geladen werden</h1>
+          <p>{loadError}</p>
+          <Link className={styles.link} to={`/games/${game.id}`}>
+            Zurueck zum Spiel
+          </Link>
         </div>
       </section>
     );

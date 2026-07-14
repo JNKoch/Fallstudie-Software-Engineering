@@ -326,6 +326,36 @@ alter table public.game_rooms enable row level security;
 alter table public.room_players enable row level security;
 alter table public.game_moves enable row level security;
 
+create or replace function public.is_room_participant(p_room_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.room_players
+    where room_players.room_id = p_room_id
+      and room_players.user_id = auth.uid()
+  );
+$$;
+
+create or replace function public.is_room_waiting(p_room_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.game_rooms
+    where game_rooms.id = p_room_id
+      and game_rooms.status = 'waiting'
+  );
+$$;
+
 drop policy if exists "rooms_insert_authenticated" on public.game_rooms;
 drop policy if exists "rooms_select_joined_or_waiting" on public.game_rooms;
 create policy "rooms_select_joined_or_waiting"
@@ -334,11 +364,7 @@ for select
 to authenticated
 using (
   status = 'waiting'
-  or exists (
-    select 1 from public.room_players
-    where room_players.room_id = game_rooms.id
-      and room_players.user_id = auth.uid()
-  )
+  or public.is_room_participant(id)
 );
 
 drop policy if exists "rooms_update_joined_players" on public.game_rooms;
@@ -349,16 +375,8 @@ for select
 to authenticated
 using (
   user_id = auth.uid()
-  or exists (
-    select 1 from public.game_rooms
-    where game_rooms.id = room_players.room_id
-      and game_rooms.status = 'waiting'
-  )
-  or exists (
-    select 1 from public.room_players viewer
-    where viewer.room_id = room_players.room_id
-      and viewer.user_id = auth.uid()
-  )
+  or public.is_room_waiting(room_id)
+  or public.is_room_participant(room_id)
 );
 
 drop policy if exists "players_insert_self_into_waiting_room" on public.room_players;
@@ -368,14 +386,12 @@ on public.game_moves
 for select
 to authenticated
 using (
-  exists (
-    select 1 from public.room_players
-    where room_players.room_id = game_moves.room_id
-      and room_players.user_id = auth.uid()
-  )
+  public.is_room_participant(room_id)
 );
 
 drop policy if exists "moves_insert_room_players" on public.game_moves;
+grant execute on function public.is_room_participant(uuid) to authenticated;
+grant execute on function public.is_room_waiting(uuid) to authenticated;
 grant execute on function public.create_game_room(text, jsonb) to authenticated;
 grant execute on function public.join_game_room(uuid) to authenticated;
 grant execute on function public.submit_tic_tac_toe_move(uuid, integer, integer) to authenticated;
