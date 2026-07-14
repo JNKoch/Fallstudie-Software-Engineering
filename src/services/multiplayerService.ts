@@ -19,9 +19,14 @@ export interface GameRoom {
   room_players?: RoomPlayer[];
 }
 
+interface QueryError {
+  code?: string;
+  message: string;
+}
+
 interface QueryResult<T> {
   data: T | null;
-  error: { message: string } | null;
+  error: QueryError | null;
 }
 
 type LooseClient = Pick<SupabaseClient, "from" | "channel" | "removeChannel" | "rpc">;
@@ -84,7 +89,15 @@ export function createMultiplayerService(client: LooseClient | null, getUserId: 
         .eq("id", roomId)
         .single()) as QueryResult<GameRoom>;
 
-      if (result.error || !result.data) {
+      if (result.error) {
+        if (result.error.code === "PGRST116") {
+          return null;
+        }
+
+        throw new Error(result.error.message);
+      }
+
+      if (!result.data) {
         return null;
       }
 

@@ -44,6 +44,28 @@ describe("multiplayerService", () => {
     expect(rpc).toHaveBeenCalledTimes(1);
   });
 
+  it("returns null when a room row is not found", async () => {
+    const rooms = createQueryBuilder({
+      data: null,
+      error: { code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned" },
+    });
+    const from = vi.fn(() => rooms);
+    const service = createMultiplayerService({ from } as never, () => "user-1");
+
+    await expect(service.loadRoom("missing-room")).resolves.toBeNull();
+  });
+
+  it("raises database errors while loading rooms", async () => {
+    const rooms = createQueryBuilder({
+      data: null,
+      error: { code: "42P17", message: "infinite recursion detected in policy for relation room_players" },
+    });
+    const from = vi.fn(() => rooms);
+    const service = createMultiplayerService({ from } as never, () => "user-1");
+
+    await expect(service.loadRoom("room-1")).rejects.toThrow("infinite recursion detected");
+  });
+
   it("rejects moves from the wrong player before writing", async () => {
     const service = createMultiplayerService({ rpc: vi.fn() } as never, () => "user-2");
 
