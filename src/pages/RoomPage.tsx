@@ -18,6 +18,8 @@ export function RoomPage() {
   const [error, setError] = useState("");
   const [loadError, setLoadError] = useState("");
   const [moveError, setMoveError] = useState("");
+  const [restartError, setRestartError] = useState("");
+  const [isRestarting, setIsRestarting] = useState(false);
 
   const loadRoom = useCallback(async () => {
     if (!roomId) {
@@ -89,6 +91,25 @@ export function RoomPage() {
       setRoom(nextRoom);
     } catch (nextError) {
       setMoveError(nextError instanceof Error ? nextError.message : "Zug wurde abgelehnt.");
+    }
+  }
+
+  async function handleRestart() {
+    if (!room || !playerSymbol) {
+      return;
+    }
+
+    setRestartError("");
+    setIsRestarting(true);
+
+    try {
+      const nextRoom = await service.restartRoom(room);
+      setRoom(nextRoom);
+      setMoveError("");
+    } catch (nextError) {
+      setRestartError(nextError instanceof Error ? nextError.message : "Neue Runde konnte nicht gestartet werden.");
+    } finally {
+      setIsRestarting(false);
     }
   }
 
@@ -167,8 +188,20 @@ export function RoomPage() {
           <div className={styles.panel}>
             <h2>Status</h2>
             <p>{statusText}</p>
-            {playerSymbol ? <p>Du spielst {playerSymbol}.</p> : <button onClick={() => void handleJoin()}>Raum beitreten</button>}
+            {playerSymbol ? (
+              <>
+                <p>Du spielst {playerSymbol}.</p>
+                <button type="button" onClick={() => void handleRestart()} disabled={isRestarting}>
+                  {isRestarting ? "Neue Runde startet" : "Neue Runde"}
+                </button>
+              </>
+            ) : (
+              <button type="button" onClick={() => void handleJoin()}>
+                Raum beitreten
+              </button>
+            )}
             {error ? <p className={styles.error}>{error}</p> : null}
+            {restartError ? <p className={styles.error}>{restartError}</p> : null}
           </div>
           <div className={styles.panel}>
             <h2>Einladung</h2>
