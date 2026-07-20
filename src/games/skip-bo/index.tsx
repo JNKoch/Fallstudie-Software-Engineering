@@ -23,14 +23,17 @@ function SkipBoGame() {
   function handlePlayCard(cardIndex: number, foundationIndex: number) {
     try {
       setError("");
-      setState((currentState) =>
-        applySkipBoMove(currentState, {
-          playerIndex: currentState.currentPlayerIndex,
-          cardIndex,
-          foundationIndex,
-        })
-      );
+      // applySkipBoMove liefert nun bei einem ungültigen Zug den neuen Zustand mit einer message zurück
+      const newState = applySkipBoMove(state, {
+        playerIndex: state.currentPlayerIndex,
+        cardIndex,
+        foundationIndex,
+      });
+      setState(newState);
       setSelectedCardIndex(null);
+      if (newState.message) {
+        setError(newState.message);
+      }
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "Zug konnte nicht ausgefuehrt werden.");
     }

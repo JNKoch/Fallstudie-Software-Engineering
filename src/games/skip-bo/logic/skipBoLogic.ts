@@ -151,7 +151,10 @@ export function applySkipBoMove(
   const nextNeeded = state.board.nextNeededValue[move.foundationIndex];
 
   if (!canPlayCard(card.value, nextNeeded)) {
-    throw new Error(`Du kannst diese Karte nicht spielen. Benötigt: ${nextNeeded}`);
+    // Ungültiger Zug — nicht werfen, sondern Zustand mit Meldung zurückgeben, damit das Spiel weiterläuft
+    const failedState = JSON.parse(JSON.stringify(state)) as SkipBoState;
+    failedState.message = `Du kannst diese Karte nicht spielen. Benötigt: ${nextNeeded}`;
+    return failedState;
   }
 
   const newState = JSON.parse(JSON.stringify(state)) as SkipBoState;
