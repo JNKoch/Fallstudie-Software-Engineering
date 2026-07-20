@@ -135,6 +135,58 @@ describe("multiplayerService", () => {
     expect(from).toHaveBeenCalledWith("game_rooms");
   });
 
+  it("submits 4 Gewinnt moves through an atomic rpc and reloads the room", async () => {
+    const roomRecord = {
+      id: "room-2",
+      game_id: "connect-four",
+      status: "active",
+      state: {
+        board: [...Array(35).fill(null), "red", ...Array(6).fill(null)],
+        currentPlayer: "yellow",
+        status: "playing",
+        winner: null,
+        lastMove: { rowIndex: 5, columnIndex: 0, cellIndex: 35 },
+      },
+      current_player: "yellow",
+      winner: null,
+      room_revision: 4,
+      room_players: [{ user_id: "user-1", symbol: "red", player_order: 1 }],
+    };
+    const rooms = createQueryBuilder({ data: roomRecord, error: null });
+    const rpc = vi.fn(async (fn: string, args: unknown) => {
+      expect(fn).toBe("submit_connect_four_move");
+      expect(args).toEqual({
+        p_room_id: "room-2",
+        p_expected_room_revision: 3,
+        p_column_index: 0,
+      });
+      return { data: 4, error: null };
+    });
+    const service = createMultiplayerService({ from: vi.fn(() => rooms), rpc } as never, () => "user-1");
+
+    const updatedRoom = await service.submitMove({
+      room: {
+        id: "room-2",
+        game_id: "connect-four",
+        room_revision: 3,
+        state: {
+          board: Array(42).fill(null),
+          currentPlayer: "red",
+          status: "playing",
+          winner: null,
+          lastMove: null,
+        },
+        current_player: "red",
+        winner: null,
+      },
+      playerSymbol: "red",
+      movePayload: { columnIndex: 0, player: "red" },
+    });
+
+    expect(updatedRoom).toEqual(roomRecord);
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
   it("restarts a tic-tac-toe room through an atomic rpc and reloads the room", async () => {
     const restartedRoom = {
       id: "room-1",
@@ -186,5 +238,44 @@ describe("multiplayerService", () => {
     expect(updatedRoom).toEqual(restartedRoom);
     expect(rpc).toHaveBeenCalledTimes(1);
     expect(from).toHaveBeenCalledWith("game_rooms");
+  });
+
+  it("restarts a 4 Gewinnt room through its atomic rpc", async () => {
+    const restartedRoom = {
+      id: "room-2",
+      game_id: "connect-four",
+      status: "active",
+      state: {
+        board: Array(42).fill(null),
+        currentPlayer: "red",
+        status: "playing",
+        winner: null,
+        lastMove: null,
+      },
+      current_player: "red",
+      winner: null,
+      room_revision: 9,
+    };
+    const rooms = createQueryBuilder({ data: restartedRoom, error: null });
+    const rpc = vi.fn(async (fn: string, args: unknown) => {
+      expect(fn).toBe("restart_connect_four_room");
+      expect(args).toEqual({
+        p_room_id: "room-2",
+        p_expected_room_revision: 8,
+      });
+      return { data: 9, error: null };
+    });
+    const service = createMultiplayerService({ from: vi.fn(() => rooms), rpc } as never, () => "user-1");
+
+    const updatedRoom = await service.restartRoom({
+      ...restartedRoom,
+      status: "finished",
+      room_revision: 8,
+      current_player: null,
+      winner: "red",
+    });
+
+    expect(updatedRoom).toEqual(restartedRoom);
+    expect(rpc).toHaveBeenCalledTimes(1);
   });
 });

@@ -18,6 +18,7 @@ describe("gameRegistry", () => {
           title: "4 Gewinnt",
           playerCount: "2 Spieler",
           difficulty: "medium",
+          supportsOnlinePlay: true,
         }),
       ]),
     );

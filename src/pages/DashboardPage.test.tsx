@@ -26,9 +26,9 @@ describe("DashboardPage", () => {
       "href",
       "/games/connect-four",
     );
-    expect(screen.getByRole("link", { name: "Online spielen" })).toHaveAttribute(
-      "href",
+    expect(screen.getAllByRole("link", { name: "Online spielen" }).map((link) => link.getAttribute("href"))).toEqual([
       "/games/tic-tac-toe",
-    );
+      "/games/connect-four",
+    ]);
   });
 });

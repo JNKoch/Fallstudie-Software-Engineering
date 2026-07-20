@@ -39,4 +39,11 @@ describe("GamePage", () => {
     expect(screen.getByRole("heading", { name: "Spiel nicht gefunden" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Zurück zum Dashboard" })).toHaveAttribute("href", "/");
   });
+
+  it("offers an online room for 4 Gewinnt", () => {
+    renderGameRoute("/games/connect-four");
+
+    expect(screen.getByRole("heading", { level: 1, name: "4 Gewinnt" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Raum erstellen" })).toBeInTheDocument();
+  });
 });

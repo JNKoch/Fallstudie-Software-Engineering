@@ -6,6 +6,7 @@ import { RoomPage } from "./RoomPage";
 
 const loadRoomMock = vi.fn<() => Promise<unknown | null>>(async () => null);
 const restartRoomMock = vi.fn<() => Promise<unknown>>();
+const submitMoveMock = vi.fn<() => Promise<unknown>>();
 
 vi.mock("../auth/AuthContext", () => ({
   useAuth: () => ({ user: { id: "user-1", email: "user@example.com" } }),
@@ -16,7 +17,7 @@ vi.mock("../services/multiplayerService", () => ({
     loadRoom: loadRoomMock,
     joinRoom: vi.fn(),
     restartRoom: restartRoomMock,
-    submitMove: vi.fn(),
+    submitMove: submitMoveMock,
     subscribeToRoom: vi.fn(() => ({ unsubscribe: vi.fn() })),
   }),
 }));
@@ -35,6 +36,7 @@ describe("RoomPage", () => {
   beforeEach(() => {
     loadRoomMock.mockResolvedValue(null);
     restartRoomMock.mockReset();
+    submitMoveMock.mockReset();
   });
 
   it("renders a clear error state for unknown rooms", async () => {
@@ -97,5 +99,47 @@ describe("RoomPage", () => {
       expect(restartRoomMock).toHaveBeenCalledWith(finishedRoom);
     });
     expect(await screen.findByText("X ist am Zug.")).toBeInTheDocument();
+  });
+
+  it("renders an online 4 Gewinnt room and submits column moves", async () => {
+    const connectFourRoom = {
+      id: "room-2",
+      game_id: "connect-four",
+      status: "active",
+      state: {
+        board: Array(42).fill(null),
+        currentPlayer: "red",
+        status: "playing",
+        winner: null,
+        lastMove: null,
+      },
+      current_player: "red",
+      winner: null,
+      room_revision: 2,
+      room_players: [
+        { user_id: "user-1", symbol: "red", player_order: 1 },
+        { user_id: "user-2", symbol: "yellow", player_order: 2 },
+      ],
+    };
+    loadRoomMock.mockResolvedValue(connectFourRoom);
+    submitMoveMock.mockResolvedValue({
+      ...connectFourRoom,
+      current_player: "yellow",
+      room_revision: 3,
+    });
+
+    renderRoomRoute("/games/connect-four/rooms/room-2");
+
+    expect(await screen.findByText("Rot ist am Zug.")).toBeInTheDocument();
+    expect(screen.getByText("Du spielst Rot.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Stein in Spalte 1 werfen" }));
+
+    await waitFor(() => {
+      expect(submitMoveMock).toHaveBeenCalledWith({
+        room: connectFourRoom,
+        playerSymbol: "red",
+        movePayload: { columnIndex: 0, player: "red" },
+      });
+    });
   });
 });

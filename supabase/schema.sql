@@ -6,7 +6,7 @@ create table if not exists public.game_rooms (
   created_by uuid not null references auth.users(id) on delete cascade,
   status text not null default 'waiting' check (status in ('waiting', 'active', 'finished')),
   state jsonb not null,
-  current_player text check (current_player in ('X', 'O')),
+  current_player text check (current_player in ('X', 'O', 'red', 'yellow')),
   winner text,
   room_revision integer not null default 0,
   created_at timestamptz not null default now(),
@@ -16,7 +16,7 @@ create table if not exists public.game_rooms (
 create table if not exists public.room_players (
   room_id uuid not null references public.game_rooms(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
-  symbol text not null check (symbol in ('X', 'O')),
+  symbol text not null check (symbol in ('X', 'O', 'red', 'yellow')),
   player_order integer not null check (player_order in (1, 2)),
   joined_at timestamptz not null default now(),
   primary key (room_id, user_id),
@@ -34,6 +34,18 @@ create table if not exists public.game_moves (
 
 alter table public.game_rooms
   add column if not exists room_revision integer not null default 0;
+
+alter table public.game_rooms
+  drop constraint if exists game_rooms_current_player_check;
+alter table public.game_rooms
+  add constraint game_rooms_current_player_check
+  check (current_player in ('X', 'O', 'red', 'yellow'));
+
+alter table public.room_players
+  drop constraint if exists room_players_symbol_check;
+alter table public.room_players
+  add constraint room_players_symbol_check
+  check (symbol in ('X', 'O', 'red', 'yellow'));
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -78,6 +90,49 @@ begin
 end;
 $$;
 
+create or replace function public.connect_four_winner(p_board jsonb)
+returns text
+language plpgsql
+immutable
+as $$
+declare
+  _row_index integer;
+  _column_index integer;
+  _cell_index integer;
+  _player text;
+begin
+  for _row_index in 0..5 loop
+    for _column_index in 0..6 loop
+      _cell_index := _row_index * 7 + _column_index;
+      _player := p_board ->> _cell_index;
+
+      if _player in ('red', 'yellow') and (
+        (_column_index <= 3
+          and _player = p_board ->> (_cell_index + 1)
+          and _player = p_board ->> (_cell_index + 2)
+          and _player = p_board ->> (_cell_index + 3))
+        or (_row_index <= 2
+          and _player = p_board ->> (_cell_index + 7)
+          and _player = p_board ->> (_cell_index + 14)
+          and _player = p_board ->> (_cell_index + 21))
+        or (_row_index <= 2 and _column_index <= 3
+          and _player = p_board ->> (_cell_index + 8)
+          and _player = p_board ->> (_cell_index + 16)
+          and _player = p_board ->> (_cell_index + 24))
+        or (_row_index <= 2 and _column_index >= 3
+          and _player = p_board ->> (_cell_index + 6)
+          and _player = p_board ->> (_cell_index + 12)
+          and _player = p_board ->> (_cell_index + 18))
+      ) then
+        return _player;
+      end if;
+    end loop;
+  end loop;
+
+  return null;
+end;
+$$;
+
 create or replace function public.create_game_room(p_game_id text, p_initial_state jsonb)
 returns uuid
 language plpgsql
@@ -87,9 +142,27 @@ as $$
 declare
   _user_id uuid := auth.uid();
   _room_id uuid;
+  _first_symbol text;
+  _initial_current_player text;
 begin
   if _user_id is null then
     raise exception 'Bitte melde dich an.';
+  end if;
+
+  if p_game_id = 'tic-tac-toe' then
+    _first_symbol := 'X';
+    _initial_current_player := case
+      when p_initial_state ->> 'currentPlayer' in ('X', 'O') then p_initial_state ->> 'currentPlayer'
+      else 'X'
+    end;
+  elsif p_game_id = 'connect-four' then
+    _first_symbol := 'red';
+    _initial_current_player := case
+      when p_initial_state ->> 'currentPlayer' in ('red', 'yellow') then p_initial_state ->> 'currentPlayer'
+      else 'red'
+    end;
+  else
+    raise exception 'Dieses Spiel unterstützt keine Online-Räume.';
   end if;
 
   insert into public.game_rooms (game_id, created_by, status, state, current_player, winner)
@@ -98,16 +171,13 @@ begin
     _user_id,
     'waiting',
     p_initial_state,
-    case
-      when p_initial_state ->> 'currentPlayer' in ('X', 'O') then p_initial_state ->> 'currentPlayer'
-      else 'X'
-    end,
+    _initial_current_player,
     nullif(p_initial_state ->> 'winner', '')
   )
   returning id into _room_id;
 
   insert into public.room_players (room_id, user_id, symbol, player_order)
-  values (_room_id, _user_id, 'X', 1);
+  values (_room_id, _user_id, _first_symbol, 1);
 
   return _room_id;
 end;
@@ -165,16 +235,14 @@ begin
     raise exception 'Der Raum ist bereits voll.';
   end if;
 
-  _assigned_symbol := case
-    when exists (
-      select 1
-      from public.room_players
-      where room_players.room_id = p_room_id
-        and room_players.symbol = 'X'
-    ) then 'O'
-    else 'X'
-  end;
-  _assigned_order := case when _assigned_symbol = 'X' then 1 else 2 end;
+  if _room.game_id = 'tic-tac-toe' then
+    _assigned_symbol := 'O';
+  elsif _room.game_id = 'connect-four' then
+    _assigned_symbol := 'yellow';
+  else
+    raise exception 'Dieses Spiel unterstützt keine Online-Räume.';
+  end if;
+  _assigned_order := 2;
 
   insert into public.room_players (room_id, user_id, symbol, player_order)
   values (p_room_id, _user_id, _assigned_symbol, _assigned_order);
@@ -255,6 +323,10 @@ begin
     raise exception 'Du bist nicht Teil dieses Raums.';
   end if;
 
+  if _room.status <> 'active' then
+    raise exception 'Warte, bis eine zweite Person dem Raum beigetreten ist.';
+  end if;
+
   if _room.state ->> 'status' <> 'playing' then
     raise exception 'Dieses Spiel ist bereits beendet.';
   end if;
@@ -309,6 +381,220 @@ begin
     current_player = case when _next_status = 'playing' then _next_current_player else null end,
     winner = _winner,
     status = case when _next_status = 'playing' then 'active' else 'finished' end,
+    room_revision = room_revision + 1
+  where id = p_room_id
+  returning room_revision into _next_revision;
+
+  return _next_revision;
+end;
+$$;
+
+create or replace function public.submit_connect_four_move(
+  p_room_id uuid,
+  p_expected_room_revision integer,
+  p_column_index integer
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  _user_id uuid := auth.uid();
+  _room public.game_rooms%rowtype;
+  _player_symbol text;
+  _board jsonb;
+  _next_board jsonb;
+  _row_index integer;
+  _cell_index integer;
+  _winner text;
+  _next_status text;
+  _next_current_player text;
+  _next_revision integer;
+begin
+  if _user_id is null then
+    raise exception 'Bitte melde dich an.';
+  end if;
+
+  if p_column_index is null or p_column_index < 0 or p_column_index > 6 then
+    raise exception 'Diese Spalte existiert nicht.';
+  end if;
+
+  select *
+  into _room
+  from public.game_rooms
+  where id = p_room_id
+  for update;
+
+  if not found then
+    raise exception 'Raum nicht gefunden.';
+  end if;
+
+  if _room.game_id <> 'connect-four' then
+    raise exception 'Dieser Raum gehört nicht zu 4 Gewinnt.';
+  end if;
+
+  if _room.room_revision <> p_expected_room_revision then
+    raise exception 'Der Raum wurde bereits aktualisiert. Bitte lade den Raum neu.';
+  end if;
+
+  select room_players.symbol
+  into _player_symbol
+  from public.room_players
+  where room_players.room_id = p_room_id
+    and room_players.user_id = _user_id;
+
+  if _player_symbol is null then
+    raise exception 'Du bist nicht Teil dieses Raums.';
+  end if;
+
+  if _room.status <> 'active' then
+    raise exception 'Warte, bis eine zweite Person dem Raum beigetreten ist.';
+  end if;
+
+  if _room.state ->> 'status' <> 'playing' then
+    raise exception 'Dieses Spiel ist bereits beendet.';
+  end if;
+
+  if _room.current_player is distinct from _player_symbol then
+    raise exception '% ist am Zug.', case when _room.current_player = 'red' then 'Rot' else 'Gelb' end;
+  end if;
+
+  _board := _room.state -> 'board';
+
+  if jsonb_typeof(_board) <> 'array' or jsonb_array_length(_board) <> 42 then
+    raise exception 'Der Raumzustand ist ungültig.';
+  end if;
+
+  _row_index := null;
+  for _candidate_row in reverse 5..0 loop
+    if _board ->> (_candidate_row * 7 + p_column_index) is null then
+      _row_index := _candidate_row;
+      exit;
+    end if;
+  end loop;
+
+  if _row_index is null then
+    raise exception 'Diese Spalte ist voll.';
+  end if;
+
+  _cell_index := _row_index * 7 + p_column_index;
+  _next_board := jsonb_set(_board, array[_cell_index::text], to_jsonb(_player_symbol), false);
+  _winner := public.connect_four_winner(_next_board);
+
+  if _winner is not null then
+    _next_status := 'won';
+    _next_current_player := _player_symbol;
+  elsif not exists (
+    select 1
+    from jsonb_array_elements(_next_board) as board_cell(cell)
+    where board_cell.cell = 'null'::jsonb
+  ) then
+    _next_status := 'draw';
+    _next_current_player := _player_symbol;
+  else
+    _next_status := 'playing';
+    _next_current_player := case when _player_symbol = 'red' then 'yellow' else 'red' end;
+  end if;
+
+  insert into public.game_moves (room_id, user_id, move_payload)
+  values (
+    p_room_id,
+    _user_id,
+    jsonb_build_object('columnIndex', p_column_index, 'player', _player_symbol)
+  );
+
+  update public.game_rooms
+  set
+    state = jsonb_build_object(
+      'board', _next_board,
+      'currentPlayer', _next_current_player,
+      'status', _next_status,
+      'winner', to_jsonb(_winner),
+      'lastMove', jsonb_build_object(
+        'rowIndex', _row_index,
+        'columnIndex', p_column_index,
+        'cellIndex', _cell_index
+      )
+    ),
+    current_player = case when _next_status = 'playing' then _next_current_player else null end,
+    winner = _winner,
+    status = case when _next_status = 'playing' then 'active' else 'finished' end,
+    room_revision = room_revision + 1
+  where id = p_room_id
+  returning room_revision into _next_revision;
+
+  return _next_revision;
+end;
+$$;
+
+create or replace function public.restart_connect_four_room(
+  p_room_id uuid,
+  p_expected_room_revision integer
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  _user_id uuid := auth.uid();
+  _room public.game_rooms%rowtype;
+  _next_status text;
+  _next_revision integer;
+begin
+  if _user_id is null then
+    raise exception 'Bitte melde dich an.';
+  end if;
+
+  select *
+  into _room
+  from public.game_rooms
+  where id = p_room_id
+  for update;
+
+  if not found then
+    raise exception 'Raum nicht gefunden.';
+  end if;
+
+  if _room.game_id <> 'connect-four' then
+    raise exception 'Dieser Raum gehört nicht zu 4 Gewinnt.';
+  end if;
+
+  if _room.room_revision <> p_expected_room_revision then
+    raise exception 'Der Raum wurde bereits aktualisiert. Bitte lade den Raum neu.';
+  end if;
+
+  if not exists (
+    select 1
+    from public.room_players
+    where room_players.room_id = p_room_id
+      and room_players.user_id = _user_id
+  ) then
+    raise exception 'Du bist nicht Teil dieses Raums.';
+  end if;
+
+  _next_status := case
+    when (
+      select count(*)
+      from public.room_players
+      where room_players.room_id = p_room_id
+    ) >= 2 then 'active'
+    else 'waiting'
+  end;
+
+  update public.game_rooms
+  set
+    status = _next_status,
+    state = jsonb_build_object(
+      'board', to_jsonb(array_fill(null::text, array[42])),
+      'currentPlayer', 'red',
+      'status', 'playing',
+      'winner', null,
+      'lastMove', null
+    ),
+    current_player = 'red',
+    winner = null,
     room_revision = room_revision + 1
   where id = p_room_id
   returning room_revision into _next_revision;
@@ -470,6 +756,8 @@ grant execute on function public.create_game_room(text, jsonb) to authenticated;
 grant execute on function public.join_game_room(uuid) to authenticated;
 grant execute on function public.submit_tic_tac_toe_move(uuid, integer, integer) to authenticated;
 grant execute on function public.restart_tic_tac_toe_room(uuid, integer) to authenticated;
+grant execute on function public.submit_connect_four_move(uuid, integer, integer) to authenticated;
+grant execute on function public.restart_connect_four_room(uuid, integer) to authenticated;
 
 do $$
 begin

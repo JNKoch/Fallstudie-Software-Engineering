@@ -4,7 +4,7 @@
 
 Dieses Repository enthält eine React-TypeScript-Plattform für digitale Brettspiele. Die Anwendung ist für eine universitäre Software-Engineering-Fallstudie aufgebaut und legt den Schwerpunkt auf modulare Spielmodule, klare Schnittstellen, Online-Spielräume und eine nachvollziehbare Architektur.
 
-Der erste deploybare Online-Schnitt nutzt Supabase Auth mit vorbereiteten Demo-Accounts und Passwort-Login, Einladungslinks für Spielräume, Postgres als dauerhafte Quelle für Raumzustand und Züge sowie Supabase Realtime für Live-Aktualisierungen.
+Der erste deploybare Online-Schnitt nutzt Supabase Auth mit vorbereiteten Demo-Accounts und Passwort-Login, Einladungslinks für Spielräume, Postgres als dauerhafte Quelle für Raumzustand und Züge sowie Supabase Realtime für Live-Aktualisierungen. Tic-Tac-Toe und 4 Gewinnt können jeweils von zwei Personen an unterschiedlichen Geräten gespielt werden.
 
 ## Stack
 
@@ -23,12 +23,12 @@ Der erste deploybare Online-Schnitt nutzt Supabase Auth mit vorbereiteten Demo-A
 - geschützter App-Zugriff für angemeldete Nutzer
 - Dashboard mit registrierten Brettspielen
 - gemeinsame `BoardGameModule`-Schnittstelle mit optionaler Online-Unterstützung
-- Tic-Tac-Toe als erstes online spielbares Modul
-- Raum erstellen und Einladungslink unter `/games/tic-tac-toe/rooms/:roomId` teilen
+- Tic-Tac-Toe und 4 Gewinnt als online spielbare Module
+- Raum erstellen und Einladungslink unter `/games/:gameId/rooms/:roomId` teilen
 - Raumbeitritt für angemeldete Nutzer
 - persistenter Raumzustand in Postgres
 - Realtime-Subscription auf Raum- und Spieler-Änderungen
-- Tests für Tic-Tac-Toe-Logik, Raumzustand, Multiplayer-Service und zentrale UI-Zustände
+- Tests für Tic-Tac-Toe- und 4-Gewinnt-Logik, Raumzustand, Multiplayer-Service und zentrale UI-Zustände
 
 ## Architektur
 
@@ -42,6 +42,10 @@ src/
     gameRegistry.ts
     types.ts
     tic-tac-toe/
+      logic/
+      styles/
+      index.tsx
+    connect-four/
       logic/
       styles/
       index.tsx
@@ -100,7 +104,7 @@ Supabase-Schema einrichten:
 
 1. Supabase-Projekt öffnen.
 2. SQL Editor öffnen.
-3. Inhalt von `supabase/schema.sql` ausführen.
+3. Inhalt von `supabase/schema.sql` ausführen. Bei einem bestehenden Projekt das vollständige Schema erneut ausführen, damit die 4-Gewinnt-Funktionen und erweiterten Spielersymbole angelegt werden.
 4. Unter Authentication im Supabase Dashboard Demo-User manuell anlegen.
 5. Für jeden Demo-User eine E-Mail-Adresse und ein Passwort setzen.
 6. Falls E-Mail-Bestätigung aktiv ist, die Demo-User im Dashboard bestätigen oder die Bestätigung für die Kursdemo deaktivieren.
@@ -140,7 +144,7 @@ npm run preview
 
 ## Vercel Deployment
 
-Das Projekt ist als Vite-SPA vorbereitet. `vercel.json` leitet Client-Routen auf `index.html` um, damit Einladungslinks wie `/games/tic-tac-toe/rooms/:roomId` direkt geöffnet werden können.
+Das Projekt ist als Vite-SPA vorbereitet. `vercel.json` leitet Client-Routen auf `index.html` um, damit Einladungslinks wie `/games/connect-four/rooms/:roomId` direkt geöffnet werden können.
 
 In Vercel müssen diese Environment Variables gesetzt werden:
 
@@ -155,7 +159,7 @@ Die App nutzt CSS Modules. Die visuelle Richtung bleibt Swiss-inspiriert: weiße
 
 ## Bekannte Grenzen
 
-- Die Spielregeln werden aktuell clientseitig angewendet. Für eine robuste produktive Version sollten Züge serverseitig per Postgres RPC oder Edge Function validiert werden.
+- Lokale Spiele wenden die Regeln clientseitig an. Online-Züge für Tic-Tac-Toe und 4 Gewinnt werden atomar durch spielbezogene Postgres-RPCs validiert.
 - Die erste Online-Version ist für kleine Freundesgruppen und die Kursdemo gedacht, nicht für kompetitives oder cheat-sicheres Spiel.
 - Raumbeitritt und Symbolvergabe sind bewusst einfach gehalten und können später über RPC atomar gemacht werden.
 
@@ -163,5 +167,5 @@ Die App nutzt CSS Modules. Die visuelle Richtung bleibt Swiss-inspiriert: weiße
 
 Zuletzt verifiziert:
 
-- `npm.cmd test`: 20 Tests erfolgreich
+- `npm.cmd test`: 44 Tests erfolgreich
 - `npm.cmd run build`: Produktionsbuild erfolgreich

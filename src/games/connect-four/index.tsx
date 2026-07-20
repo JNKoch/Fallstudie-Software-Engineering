@@ -126,7 +126,7 @@ export const connectFourModule: BoardGameModule = {
   playerCount: "2 Spieler",
   difficulty: "medium",
   shortRules: "Abwechselnd in Spalten werfen. Vier gleiche Farben waagrecht, senkrecht oder diagonal gewinnen.",
-  supportsOnlinePlay: false,
+  supportsOnlinePlay: true,
   createInitialState: createInitialConnectFourState,
   Component: ConnectFourGame,
 };
