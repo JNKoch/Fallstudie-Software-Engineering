@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       signInLocally() {
         if (!canUseLocalAuth) {
-          throw new Error("Lokaler Login ist nur im Entwicklungsmodus verfuegbar.");
+          throw new Error("Lokaler Login ist nur im Entwicklungsmodus verfügbar.");
         }
 
         window.localStorage.setItem(localAuthStorageKey, "true");

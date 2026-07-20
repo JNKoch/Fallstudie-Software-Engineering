@@ -120,7 +120,7 @@ export function RoomPage() {
         <div className={styles.content}>
           <h1 id="missing-game-title">Spiel nicht gefunden</h1>
           <Link className={styles.link} to="/">
-            Zurueck zum Dashboard
+            Zurück zum Dashboard
           </Link>
         </div>
       </section>
@@ -146,7 +146,7 @@ export function RoomPage() {
           <h1 id="room-load-error-title">Raum konnte nicht geladen werden</h1>
           <p>{loadError}</p>
           <Link className={styles.link} to={`/games/${game.id}`}>
-            Zurueck zum Spiel
+            Zurück zum Spiel
           </Link>
         </div>
       </section>
@@ -159,9 +159,9 @@ export function RoomPage() {
         <p className={styles.marker}>404</p>
         <div className={styles.content}>
           <h1 id="missing-room-title">Raum nicht gefunden</h1>
-          <p>Der Einladungslink ist ungueltig oder der Raum wurde geloescht.</p>
+          <p>Der Einladungslink ist ungültig oder der Raum wurde gelöscht.</p>
           <Link className={styles.link} to={`/games/${game.id}`}>
-            Zurueck zum Spiel
+            Zurück zum Spiel
           </Link>
         </div>
       </section>
@@ -181,7 +181,7 @@ export function RoomPage() {
       <p className={styles.marker}>03</p>
       <div className={styles.content}>
         <Link className={styles.link} to={`/games/${game.id}`}>
-          Zurueck zum Spiel
+          Zurück zum Spiel
         </Link>
         <h1 id="room-title">{game.title}</h1>
         <div className={styles.roomGrid}>

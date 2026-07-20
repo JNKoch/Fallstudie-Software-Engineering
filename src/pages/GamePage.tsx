@@ -22,7 +22,7 @@ export function GamePage() {
           <h1 id="missing-game-title">Spiel nicht gefunden</h1>
           <p>Das angeforderte Spiel ist nicht in der Registry eingetragen.</p>
           <Link className={styles.link} to="/">
-            Zurueck zum Dashboard
+            Zurück zum Dashboard
           </Link>
         </div>
       </section>
@@ -55,7 +55,7 @@ export function GamePage() {
       <p className={styles.marker}>02</p>
       <div className={styles.content}>
         <Link className={styles.link} to="/">
-          Zurueck zum Dashboard
+          Zurück zum Dashboard
         </Link>
         <h1 id="game-title">{game.title}</h1>
         <p>{game.description}</p>

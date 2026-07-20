@@ -120,7 +120,7 @@ export function createMultiplayerService(client: LooseClient | null, getUserId: 
       ensureUserId(getUserId);
 
       if (room.game_id !== "tic-tac-toe") {
-        throw new Error("Dieses Spiel unterstuetzt noch keine Online-Zuege.");
+        throw new Error("Dieses Spiel unterstützt noch keine Online-Züge.");
       }
 
       const cellIndex =
@@ -132,7 +132,7 @@ export function createMultiplayerService(client: LooseClient | null, getUserId: 
           : null;
 
       if (cellIndex === null) {
-        throw new Error("Der Zug ist ungueltig.");
+        throw new Error("Der Zug ist ungültig.");
       }
 
       const result = (await requireSupabase(client).rpc("submit_tic_tac_toe_move", {
@@ -156,7 +156,7 @@ export function createMultiplayerService(client: LooseClient | null, getUserId: 
       ensureUserId(getUserId);
 
       if (room.game_id !== "tic-tac-toe") {
-        throw new Error("Dieses Spiel unterstuetzt noch keine neue Runde.");
+        throw new Error("Dieses Spiel unterstützt noch keine neue Runde.");
       }
 
       const result = (await requireSupabase(client).rpc("restart_tic_tac_toe_room", {

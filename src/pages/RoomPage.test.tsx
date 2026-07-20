@@ -41,7 +41,7 @@ describe("RoomPage", () => {
     renderRoomRoute("/games/tic-tac-toe/rooms/missing-room");
 
     expect(await screen.findByRole("heading", { name: "Raum nicht gefunden" })).toBeInTheDocument();
-    expect(screen.getByText("Der Einladungslink ist ungueltig oder der Raum wurde geloescht.")).toBeInTheDocument();
+    expect(screen.getByText("Der Einladungslink ist ungültig oder der Raum wurde gelöscht.")).toBeInTheDocument();
   });
 
   it("renders the load error when the room cannot be queried", async () => {

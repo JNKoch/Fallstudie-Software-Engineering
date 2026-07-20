@@ -24,7 +24,7 @@ describe("applyRoomMove", () => {
 
   it("rejects unsupported game ids", () => {
     expect(() => applyRoomMove({}, "unknown", { cellIndex: 0, symbol: "X" })).toThrow(
-      "Dieses Spiel unterstuetzt noch keine Online-Zuege.",
+      "Dieses Spiel unterstützt noch keine Online-Züge.",
     );
   });
 });

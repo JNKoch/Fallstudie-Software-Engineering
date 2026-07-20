@@ -33,7 +33,7 @@ function ConnectFourGame() {
         }),
       );
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Zug konnte nicht ausgefuehrt werden.");
+      setError(nextError instanceof Error ? nextError.message : "Zug konnte nicht ausgeführt werden.");
     }
   }
 
@@ -45,7 +45,7 @@ function ConnectFourGame() {
   return (
     <section className={styles.reference} aria-labelledby="connect-four-title">
       <h2 id="connect-four-title">4 Gewinnt</h2>
-      <p>Lokales Spiel fuer zwei Spieler auf einem Geraet.</p>
+      <p>Lokales Spiel für zwei Spieler auf einem Gerät.</p>
       <p>Wirf abwechselnd Spielsteine in die Spalten. Vier gleiche Farben in einer Reihe gewinnen.</p>
       <p className={styles.status}>{statusText}</p>
       <div className={styles.actions}>

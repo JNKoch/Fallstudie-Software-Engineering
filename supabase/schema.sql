@@ -238,7 +238,7 @@ begin
   end if;
 
   if _room.game_id <> 'tic-tac-toe' then
-    raise exception 'Dieses Spiel unterstuetzt noch keine Online-Zuege.';
+    raise exception 'Dieses Spiel unterstützt noch keine Online-Züge.';
   end if;
 
   if _room.room_revision <> p_expected_room_revision then
@@ -266,7 +266,7 @@ begin
   _board := _room.state -> 'board';
 
   if jsonb_typeof(_board) <> 'array' or jsonb_array_length(_board) <> 9 then
-    raise exception 'Der Raumzustand ist ungueltig.';
+    raise exception 'Der Raumzustand ist ungültig.';
   end if;
 
   if _board ->> p_cell_index is not null then
@@ -347,7 +347,7 @@ begin
   end if;
 
   if _room.game_id <> 'tic-tac-toe' then
-    raise exception 'Dieses Spiel unterstuetzt noch keine neue Runde.';
+    raise exception 'Dieses Spiel unterstützt noch keine neue Runde.';
   end if;
 
   if _room.room_revision <> p_expected_room_revision then

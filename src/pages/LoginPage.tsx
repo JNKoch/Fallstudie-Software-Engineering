@@ -31,7 +31,7 @@ export function LoginPage() {
       <p className={styles.marker}>00</p>
       <form className={styles.form} onSubmit={handleSubmit}>
         <h1 id="login-title">Anmelden</h1>
-        <p>Nutze einen vorbereiteten Demo-Account, um Online-Raeume zu erstellen und Einladungen zu oeffnen.</p>
+        <p>Nutze einen vorbereiteten Demo-Account, um Online-Räume zu erstellen und Einladungen zu öffnen.</p>
         <label htmlFor="email">E-Mail-Adresse</label>
         <input
           id="email"

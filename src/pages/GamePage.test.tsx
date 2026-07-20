@@ -29,7 +29,7 @@ describe("GamePage", () => {
     renderGameRoute("/games/tic-tac-toe");
 
     expect(screen.getByRole("heading", { level: 1, name: "Tic-Tac-Toe" })).toBeInTheDocument();
-    expect(screen.getByText("Online spielbares Referenzmodul fuer die Plattformstruktur.")).toBeInTheDocument();
+    expect(screen.getByText("Online spielbares Referenzmodul für die Plattformstruktur.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Raum erstellen" })).toBeInTheDocument();
   });
 
@@ -37,6 +37,6 @@ describe("GamePage", () => {
     renderGameRoute("/games/unknown");
 
     expect(screen.getByRole("heading", { name: "Spiel nicht gefunden" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Zurueck zum Dashboard" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Zurück zum Dashboard" })).toHaveAttribute("href", "/");
   });
 });

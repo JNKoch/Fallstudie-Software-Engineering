@@ -30,7 +30,7 @@ function TicTacToeGame() {
         }),
       );
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Zug konnte nicht ausgefuehrt werden.");
+      setError(nextError instanceof Error ? nextError.message : "Zug konnte nicht ausgeführt werden.");
     }
   }
 
@@ -42,8 +42,8 @@ function TicTacToeGame() {
   return (
     <section className={styles.reference} aria-labelledby="tic-tac-toe-title">
       <h2 id="tic-tac-toe-title">Tic-Tac-Toe</h2>
-      <p>Online spielbares Referenzmodul fuer die Plattformstruktur.</p>
-      <p>Lokales Spiel fuer zwei Spieler auf einem Geraet.</p>
+      <p>Online spielbares Referenzmodul für die Plattformstruktur.</p>
+      <p>Lokales Spiel für zwei Spieler auf einem Gerät.</p>
       <p className={styles.status}>{statusText}</p>
       <div className={styles.actions}>
         <button className={styles.resetButton} onClick={handleReset} type="button">

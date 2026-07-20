@@ -1,10 +1,10 @@
 # Fallstudie-Software-Engineering
 
-## Projektueberblick
+## Projektüberblick
 
-Dieses Repository enthaelt eine React-TypeScript-Plattform fuer digitale Brettspiele. Die Anwendung ist fuer eine universitaere Software-Engineering-Fallstudie aufgebaut und legt den Schwerpunkt auf modulare Spielmodule, klare Schnittstellen, Online-Spielraeume und eine nachvollziehbare Architektur.
+Dieses Repository enthält eine React-TypeScript-Plattform für digitale Brettspiele. Die Anwendung ist für eine universitäre Software-Engineering-Fallstudie aufgebaut und legt den Schwerpunkt auf modulare Spielmodule, klare Schnittstellen, Online-Spielräume und eine nachvollziehbare Architektur.
 
-Der erste deploybare Online-Schnitt nutzt Supabase Auth mit vorbereiteten Demo-Accounts und Passwort-Login, Einladungslinks fuer Spielraeume, Postgres als dauerhafte Quelle fuer Raumzustand und Zuege sowie Supabase Realtime fuer Live-Aktualisierungen.
+Der erste deploybare Online-Schnitt nutzt Supabase Auth mit vorbereiteten Demo-Accounts und Passwort-Login, Einladungslinks für Spielräume, Postgres als dauerhafte Quelle für Raumzustand und Züge sowie Supabase Realtime für Live-Aktualisierungen.
 
 ## Stack
 
@@ -19,16 +19,16 @@ Der erste deploybare Online-Schnitt nutzt Supabase Auth mit vorbereiteten Demo-A
 
 ## Aktueller Funktionsumfang
 
-- Login per Supabase E-Mail und Passwort fuer vorbereitete Demo-User
-- geschuetzter App-Zugriff fuer angemeldete Nutzer
+- Login per Supabase E-Mail und Passwort für vorbereitete Demo-User
+- geschützter App-Zugriff für angemeldete Nutzer
 - Dashboard mit registrierten Brettspielen
-- gemeinsame `BoardGameModule`-Schnittstelle mit optionaler Online-Unterstuetzung
+- gemeinsame `BoardGameModule`-Schnittstelle mit optionaler Online-Unterstützung
 - Tic-Tac-Toe als erstes online spielbares Modul
 - Raum erstellen und Einladungslink unter `/games/tic-tac-toe/rooms/:roomId` teilen
-- Raumbeitritt fuer angemeldete Nutzer
+- Raumbeitritt für angemeldete Nutzer
 - persistenter Raumzustand in Postgres
-- Realtime-Subscription auf Raum- und Spieler-Aenderungen
-- Tests fuer Tic-Tac-Toe-Logik, Raumzustand, Multiplayer-Service und zentrale UI-Zustaende
+- Realtime-Subscription auf Raum- und Spieler-Änderungen
+- Tests für Tic-Tac-Toe-Logik, Raumzustand, Multiplayer-Service und zentrale UI-Zustände
 
 ## Architektur
 
@@ -98,14 +98,14 @@ VITE_SUPABASE_PUBLISHABLE_KEY=...
 
 Supabase-Schema einrichten:
 
-1. Supabase-Projekt oeffnen.
-2. SQL Editor oeffnen.
-3. Inhalt von `supabase/schema.sql` ausfuehren.
+1. Supabase-Projekt öffnen.
+2. SQL Editor öffnen.
+3. Inhalt von `supabase/schema.sql` ausführen.
 4. Unter Authentication im Supabase Dashboard Demo-User manuell anlegen.
-5. Fuer jeden Demo-User eine E-Mail-Adresse und ein Passwort setzen.
-6. Falls E-Mail-Bestaetigung aktiv ist, die Demo-User im Dashboard bestaetigen oder die Bestaetigung fuer die Kursdemo deaktivieren.
+5. Für jeden Demo-User eine E-Mail-Adresse und ein Passwort setzen.
+6. Falls E-Mail-Bestätigung aktiv ist, die Demo-User im Dashboard bestätigen oder die Bestätigung für die Kursdemo deaktivieren.
 
-Der normale Login nutzt `signInWithPassword` und sendet bei der Anmeldung keine E-Mail. Magic Links sind fuer die Demo nicht der empfohlene Standardpfad.
+Der normale Login nutzt `signInWithPassword` und sendet bei der Anmeldung keine E-Mail. Magic Links sind für die Demo nicht der empfohlene Standardpfad.
 
 Entwicklungsserver starten:
 
@@ -115,9 +115,9 @@ npm run dev
 
 Lokaler Test ohne Supabase:
 
-- Wenn keine Supabase-Env-Vars gesetzt sind und der Vite-Dev-Server laeuft, zeigt die Login-Seite den Button `Lokal testen`.
+- Wenn keine Supabase-Env-Vars gesetzt sind und der Vite-Dev-Server läuft, zeigt die Login-Seite den Button `Lokal testen`.
 - Dieser Modus erstellt nur eine lokale Demo-Session im Browser.
-- Dashboard, Navigation und Spielseiten koennen damit getestet werden.
+- Dashboard, Navigation und Spielseiten können damit getestet werden.
 - Echte Raum-Persistenz, Passwort-Login und Realtime-Multiplayer brauchen weiterhin ein Supabase-Projekt.
 
 Produktionsbuild:
@@ -140,24 +140,24 @@ npm run preview
 
 ## Vercel Deployment
 
-Das Projekt ist als Vite-SPA vorbereitet. `vercel.json` leitet Client-Routen auf `index.html` um, damit Einladungslinks wie `/games/tic-tac-toe/rooms/:roomId` direkt geoeffnet werden koennen.
+Das Projekt ist als Vite-SPA vorbereitet. `vercel.json` leitet Client-Routen auf `index.html` um, damit Einladungslinks wie `/games/tic-tac-toe/rooms/:roomId` direkt geöffnet werden können.
 
-In Vercel muessen diese Environment Variables gesetzt werden:
+In Vercel müssen diese Environment Variables gesetzt werden:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-Fuer den Passwort-Login sind keine Login-Redirects noetig. Falls spaeter wieder E-Mail-basierte Auth-Flows genutzt werden, muss die Vercel-Domain in Supabase als Redirect URL fuer Auth eingetragen werden.
+Für den Passwort-Login sind keine Login-Redirects nötig. Falls später wieder E-Mail-basierte Auth-Flows genutzt werden, muss die Vercel-Domain in Supabase als Redirect URL für Auth eingetragen werden.
 
 ## Styling-Entscheidung
 
-Die App nutzt CSS Modules. Die visuelle Richtung bleibt Swiss-inspiriert: weisse Flaechen, schwarze 1px-Regeln, linksbuendige Typografie und der rote Akzent `#E4002B`. Dadurch bleibt das Interface ruhig, gut lesbar und fuer weitere Spielmodule erweiterbar.
+Die App nutzt CSS Modules. Die visuelle Richtung bleibt Swiss-inspiriert: weiße Flächen, schwarze 1px-Regeln, linksbündige Typografie und der rote Akzent `#E4002B`. Dadurch bleibt das Interface ruhig, gut lesbar und für weitere Spielmodule erweiterbar.
 
 ## Bekannte Grenzen
 
-- Die Spielregeln werden aktuell clientseitig angewendet. Fuer eine robuste produktive Version sollten Zuege serverseitig per Postgres RPC oder Edge Function validiert werden.
-- Die erste Online-Version ist fuer kleine Freundesgruppen und die Kursdemo gedacht, nicht fuer kompetitives oder cheat-sicheres Spiel.
-- Raumbeitritt und Symbolvergabe sind bewusst einfach gehalten und koennen spaeter ueber RPC atomar gemacht werden.
+- Die Spielregeln werden aktuell clientseitig angewendet. Für eine robuste produktive Version sollten Züge serverseitig per Postgres RPC oder Edge Function validiert werden.
+- Die erste Online-Version ist für kleine Freundesgruppen und die Kursdemo gedacht, nicht für kompetitives oder cheat-sicheres Spiel.
+- Raumbeitritt und Symbolvergabe sind bewusst einfach gehalten und können später über RPC atomar gemacht werden.
 
 ## Verifikation
 

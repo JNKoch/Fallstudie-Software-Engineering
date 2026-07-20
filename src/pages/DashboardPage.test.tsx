@@ -18,11 +18,11 @@ describe("DashboardPage", () => {
     expect(screen.getAllByText("2 Spieler")).toHaveLength(2);
     expect(screen.getByText("Einfach")).toBeInTheDocument();
     expect(screen.getByText("Mittel")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Tic-Tac-Toe oeffnen" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Tic-Tac-Toe öffnen" })).toHaveAttribute(
       "href",
       "/games/tic-tac-toe",
     );
-    expect(screen.getByRole("link", { name: "4 Gewinnt oeffnen" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "4 Gewinnt öffnen" })).toHaveAttribute(
       "href",
       "/games/connect-four",
     );

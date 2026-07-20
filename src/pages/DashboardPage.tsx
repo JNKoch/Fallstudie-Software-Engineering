@@ -17,11 +17,11 @@ export function DashboardPage() {
         <p className={styles.marker}>01</p>
         <div>
           <h1 id="dashboard-title">Digitale Brettspiele</h1>
-          <p>Dashboard fuer Online-Brettspiele mit Freunden.</p>
+          <p>Dashboard für Online-Brettspiele mit Freunden.</p>
         </div>
       </div>
 
-      <div className={styles.grid} aria-label="Verfuegbare Spiele">
+      <div className={styles.grid} aria-label="Verfügbare Spiele">
         {gameRegistry.map((game) => (
           <article className={styles.card} key={game.id}>
             <div className={styles.cardHeader}>
@@ -41,7 +41,7 @@ export function DashboardPage() {
             </dl>
             <div className={styles.actions}>
               <Link className={styles.link} to={`/games/${game.id}`}>
-                {game.title} oeffnen
+                {game.title} öffnen
               </Link>
               {game.supportsOnlinePlay ? (
                 <Link className={styles.link} to={`/games/${game.id}`}>

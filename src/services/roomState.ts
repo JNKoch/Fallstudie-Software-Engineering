@@ -5,5 +5,5 @@ export function applyRoomMove(state: unknown, gameId: string, movePayload: unkno
     return applyTicTacToeMove(state as TicTacToeState, movePayload as never);
   }
 
-  throw new Error("Dieses Spiel unterstuetzt noch keine Online-Zuege.");
+  throw new Error("Dieses Spiel unterstützt noch keine Online-Züge.");
 }
