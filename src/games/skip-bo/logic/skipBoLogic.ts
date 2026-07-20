@@ -1,3 +1,4 @@
+
 export type CardValue = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "11" | "12" | "SKIP";
 
 export interface Card {
@@ -9,6 +10,7 @@ export interface PlayerHand {
   id: string;
   cards: Card[];
   stockPile: Card[];
+  visibleStock: Card | null;
   discardPiles: Card[][];
 }
 
@@ -78,17 +80,21 @@ export function createInitialSkipBoState(playerCount: number = 2): SkipBoState {
     }
 
     const stockPile: Card[] = [];
-    const stockSize = 15 + i;
+    const stockSize = 10; // Jeder Spieler erhält nun genau 10 Karten im Startstapel
     for (let j = 0; j < stockSize; j++) {
       if (deckIndex < deck.length) {
         stockPile.push(deck[deckIndex++]);
       }
     }
 
+    // Die oberste Karte des Stapels ist sichtbar/spielbar — als visibleStock speichern
+    const visibleStock = stockPile.length > 0 ? stockPile.pop()! : null;
+
     players.push({
       id: `player-${i}`,
       cards: hand,
       stockPile,
+      visibleStock,
       discardPiles: [[], [], [], []],
     });
   }
@@ -108,6 +114,7 @@ export function createInitialSkipBoState(playerCount: number = 2): SkipBoState {
 
 export function canPlayCard(cardValue: CardValue, nextNeeded: string | number): boolean {
   if (cardValue === "SKIP") return true;
+  if (nextNeeded === "complete") return false;
   return Number(cardValue) === nextNeeded;
 }
 
@@ -125,7 +132,10 @@ export function applySkipBoMove(
 
   const player = state.players[move.playerIndex];
 
-  if (move.cardIndex < 0 || move.cardIndex >= player.cards.length) {
+  // move.cardIndex === -1 bedeutet: oberste Karte des Stock-Piles (visibleStock) spielen
+  const playingFromStock = move.cardIndex === -1;
+
+  if (!playingFromStock && (move.cardIndex < 0 || move.cardIndex >= player.cards.length)) {
     throw new Error("Ungültige Kartennummer.");
   }
 
@@ -133,9 +143,12 @@ export function applySkipBoMove(
     throw new Error("Ungültige Foundation-Pile.");
   }
 
-  const card = player.cards[move.cardIndex];
+  const card = playingFromStock ? player.visibleStock : player.cards[move.cardIndex];
+  if (!card) {
+    throw new Error("Keine Karte zum Spielen vorhanden.");
+  }
+
   const nextNeeded = state.board.nextNeededValue[move.foundationIndex];
-  const foundation = state.board.foundationPiles[move.foundationIndex];
 
   if (!canPlayCard(card.value, nextNeeded)) {
     throw new Error(`Du kannst diese Karte nicht spielen. Benötigt: ${nextNeeded}`);
@@ -143,50 +156,88 @@ export function applySkipBoMove(
 
   const newState = JSON.parse(JSON.stringify(state)) as SkipBoState;
   const newPlayer = newState.players[move.playerIndex];
-  
-  newPlayer.cards.splice(move.cardIndex, 1);
-  newState.board.foundationPiles[move.foundationIndex].push(card);
 
-  if (card.value === "SKIP") {
-    newState.board.nextNeededValue[move.foundationIndex] = nextNeeded;
+  // Karte vom jeweiligen Ort entfernen
+  if (playingFromStock) {
+    // visibleStock wurde gespielt; decke die nächste Karte vom stockPile auf
+    newState.board.foundationPiles[move.foundationIndex].push(card);
+    newPlayer.visibleStock = newPlayer.stockPile.length > 0 ? newPlayer.stockPile.pop()! : null;
   } else {
-    const nextValue = Number(card.value) + 1;
-    if (nextValue > 12) {
+    const removed = newPlayer.cards.splice(move.cardIndex, 1)[0];
+    newState.board.foundationPiles[move.foundationIndex].push(removed);
+  }
+
+  // nextNeededValue aktualisieren
+  const playedValue = card.value;
+  if (playedValue === "SKIP") {
+    if (nextNeeded === "complete") {
       newState.board.nextNeededValue[move.foundationIndex] = "complete";
+    } else {
+      const nextValue = Number(nextNeeded) + 1;
+      if (nextValue > 12) {
+        newState.board.nextNeededValue[move.foundationIndex] = 1;
+      } else {
+        newState.board.nextNeededValue[move.foundationIndex] = nextValue;
+      }
+    }
+  } else {
+    const nextValue = Number(playedValue) + 1;
+    if (nextValue > 12) {
+      newState.board.nextNeededValue[move.foundationIndex] = 1;
     } else {
       newState.board.nextNeededValue[move.foundationIndex] = nextValue;
     }
   }
 
-  if (newPlayer.cards.length === 0 && newPlayer.stockPile.length === 0) {
-    const discardEmpty = newPlayer.discardPiles.every((pile) => pile.length === 0);
-    if (discardEmpty) {
-      newState.status = "won";
-      newState.winner = move.playerIndex;
-      newState.message = `Spieler ${move.playerIndex + 1} hat gewonnen!`;
-      return newState;
-    }
+  // Gewinnbedingung: keine Karten in Hand, kein sichtbarer Stock und kein Stock-Deck, sowie alle Discard-Piles leer
+  const noHand = newPlayer.cards.length === 0;
+  const noStock = newPlayer.stockPile.length === 0 && newPlayer.visibleStock === null;
+  const discardEmpty = newPlayer.discardPiles.every((pile) => pile.length === 0);
+  if (noHand && noStock && discardEmpty) {
+    newState.status = "won";
+    newState.winner = move.playerIndex;
+    newState.message = `Spieler ${move.playerIndex + 1} hat gewonnen!`;
+    return newState;
   }
 
   newState.message = "";
   return newState;
 }
 
-export function drawCard(state: SkipBoState, playerIndex: number): SkipBoState {
+/**
+ * End the current player's turn and start the next player's turn.
+ * At the start of the incoming player's turn, ensure their hand is topped up to 5 cards.
+ */
+export function endTurn(state: SkipBoState, playerIndex: number): SkipBoState {
   if (playerIndex !== state.currentPlayerIndex) {
     throw new Error("Spieler sind nicht am Zug.");
   }
 
-  const player = state.players[playerIndex];
-  
-  if (player.stockPile.length > 0) {
-    const card = player.stockPile.pop();
-    if (card) {
-      player.cards.push(card);
+  const newState = JSON.parse(JSON.stringify(state)) as SkipBoState;
+  // advance to next player
+  newState.currentPlayerIndex = (newState.currentPlayerIndex + 1) % newState.players.length;
+
+  const nextPlayer = newState.players[newState.currentPlayerIndex];
+  // Refill next player's hand up to 5 cards.
+  while (nextPlayer.cards.length < 5) {
+    if (nextPlayer.stockPile.length > 0) {
+      const card = nextPlayer.stockPile.pop();
+      if (card) {
+        nextPlayer.cards.push(card);
+        continue;
+      }
     }
+
+    // If no more cards in stockPile but a visibleStock exists, move it into hand
+    if (nextPlayer.visibleStock) {
+      nextPlayer.cards.push(nextPlayer.visibleStock);
+      nextPlayer.visibleStock = nextPlayer.stockPile.length > 0 ? nextPlayer.stockPile.pop()! : null;
+      continue;
+    }
+
+    // Nothing left to draw
+    break;
   }
 
-  const newState = JSON.parse(JSON.stringify(state)) as SkipBoState;
-  newState.currentPlayerIndex = (newState.currentPlayerIndex + 1) % newState.players.length;
   return newState;
 }
