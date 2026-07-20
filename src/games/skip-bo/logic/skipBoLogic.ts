@@ -130,7 +130,8 @@ export function canPlayCard(
 ): boolean {
   // If a SKIP previously started the pile and we are awaiting choice, only 2 or 11 decide direction
   if (awaitingChoice) {
-    return cardValue === "2" || cardValue === "11";
+    // Allow resolving choice with 2 or 11, or stacking additional SKIP cards while still awaiting choice
+    return cardValue === "2" || cardValue === "11" || cardValue === "SKIP";
   }
 
   // SKIP weiterhin als Joker erlauben (wenn not awaiting choice)
