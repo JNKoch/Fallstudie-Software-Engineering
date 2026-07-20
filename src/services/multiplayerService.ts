@@ -19,9 +19,14 @@ export interface GameRoom {
   room_players?: RoomPlayer[];
 }
 
+interface QueryError {
+  code?: string;
+  message: string;
+}
+
 interface QueryResult<T> {
   data: T | null;
-  error: { message: string } | null;
+  error: QueryError | null;
 }
 
 type LooseClient = Pick<SupabaseClient, "from" | "channel" | "removeChannel" | "rpc">;
@@ -84,7 +89,15 @@ export function createMultiplayerService(client: LooseClient | null, getUserId: 
         .eq("id", roomId)
         .single()) as QueryResult<GameRoom>;
 
-      if (result.error || !result.data) {
+      if (result.error) {
+        if (result.error.code === "PGRST116") {
+          return null;
+        }
+
+        throw new Error(result.error.message);
+      }
+
+      if (!result.data) {
         return null;
       }
 
@@ -134,6 +147,29 @@ export function createMultiplayerService(client: LooseClient | null, getUserId: 
 
       if (!updatedRoom) {
         throw new Error("Raum konnte nach dem Zug nicht geladen werden.");
+      }
+
+      return updatedRoom;
+    },
+
+    async restartRoom(room: GameRoom) {
+      ensureUserId(getUserId);
+
+      if (room.game_id !== "tic-tac-toe") {
+        throw new Error("Dieses Spiel unterstuetzt noch keine neue Runde.");
+      }
+
+      const result = (await requireSupabase(client).rpc("restart_tic_tac_toe_room", {
+        p_room_id: room.id,
+        p_expected_room_revision: room.room_revision,
+      })) as QueryResult<number>;
+
+      assertResult(result);
+
+      const updatedRoom = await this.loadRoom(room.id);
+
+      if (!updatedRoom) {
+        throw new Error("Raum konnte nach dem Neustart nicht geladen werden.");
       }
 
       return updatedRoom;

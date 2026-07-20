@@ -317,6 +317,80 @@ begin
 end;
 $$;
 
+create or replace function public.restart_tic_tac_toe_room(
+  p_room_id uuid,
+  p_expected_room_revision integer
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  _user_id uuid := auth.uid();
+  _room public.game_rooms%rowtype;
+  _next_status text;
+  _next_revision integer;
+begin
+  if _user_id is null then
+    raise exception 'Bitte melde dich an.';
+  end if;
+
+  select *
+  into _room
+  from public.game_rooms
+  where id = p_room_id
+  for update;
+
+  if not found then
+    raise exception 'Raum nicht gefunden.';
+  end if;
+
+  if _room.game_id <> 'tic-tac-toe' then
+    raise exception 'Dieses Spiel unterstuetzt noch keine neue Runde.';
+  end if;
+
+  if _room.room_revision <> p_expected_room_revision then
+    raise exception 'Der Raum wurde bereits aktualisiert. Bitte lade den Raum neu.';
+  end if;
+
+  if not exists (
+    select 1
+    from public.room_players
+    where room_players.room_id = p_room_id
+      and room_players.user_id = _user_id
+  ) then
+    raise exception 'Du bist nicht Teil dieses Raums.';
+  end if;
+
+  _next_status := case
+    when (
+      select count(*)
+      from public.room_players
+      where room_players.room_id = p_room_id
+    ) >= 2 then 'active'
+    else 'waiting'
+  end;
+
+  update public.game_rooms
+  set
+    status = _next_status,
+    state = jsonb_build_object(
+      'board', jsonb_build_array(null, null, null, null, null, null, null, null, null),
+      'currentPlayer', 'X',
+      'status', 'playing',
+      'winner', null
+    ),
+    current_player = 'X',
+    winner = null,
+    room_revision = room_revision + 1
+  where id = p_room_id
+  returning room_revision into _next_revision;
+
+  return _next_revision;
+end;
+$$;
+
 drop trigger if exists set_game_rooms_updated_at on public.game_rooms;
 create trigger set_game_rooms_updated_at
 before update on public.game_rooms
@@ -326,6 +400,36 @@ alter table public.game_rooms enable row level security;
 alter table public.room_players enable row level security;
 alter table public.game_moves enable row level security;
 
+create or replace function public.is_room_participant(p_room_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.room_players
+    where room_players.room_id = p_room_id
+      and room_players.user_id = auth.uid()
+  );
+$$;
+
+create or replace function public.is_room_waiting(p_room_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.game_rooms
+    where game_rooms.id = p_room_id
+      and game_rooms.status = 'waiting'
+  );
+$$;
+
 drop policy if exists "rooms_insert_authenticated" on public.game_rooms;
 drop policy if exists "rooms_select_joined_or_waiting" on public.game_rooms;
 create policy "rooms_select_joined_or_waiting"
@@ -334,11 +438,7 @@ for select
 to authenticated
 using (
   status = 'waiting'
-  or exists (
-    select 1 from public.room_players
-    where room_players.room_id = game_rooms.id
-      and room_players.user_id = auth.uid()
-  )
+  or public.is_room_participant(id)
 );
 
 drop policy if exists "rooms_update_joined_players" on public.game_rooms;
@@ -349,16 +449,8 @@ for select
 to authenticated
 using (
   user_id = auth.uid()
-  or exists (
-    select 1 from public.game_rooms
-    where game_rooms.id = room_players.room_id
-      and game_rooms.status = 'waiting'
-  )
-  or exists (
-    select 1 from public.room_players viewer
-    where viewer.room_id = room_players.room_id
-      and viewer.user_id = auth.uid()
-  )
+  or public.is_room_waiting(room_id)
+  or public.is_room_participant(room_id)
 );
 
 drop policy if exists "players_insert_self_into_waiting_room" on public.room_players;
@@ -368,17 +460,16 @@ on public.game_moves
 for select
 to authenticated
 using (
-  exists (
-    select 1 from public.room_players
-    where room_players.room_id = game_moves.room_id
-      and room_players.user_id = auth.uid()
-  )
+  public.is_room_participant(room_id)
 );
 
 drop policy if exists "moves_insert_room_players" on public.game_moves;
+grant execute on function public.is_room_participant(uuid) to authenticated;
+grant execute on function public.is_room_waiting(uuid) to authenticated;
 grant execute on function public.create_game_room(text, jsonb) to authenticated;
 grant execute on function public.join_game_room(uuid) to authenticated;
 grant execute on function public.submit_tic_tac_toe_move(uuid, integer, integer) to authenticated;
+grant execute on function public.restart_tic_tac_toe_room(uuid, integer) to authenticated;
 
 do $$
 begin
