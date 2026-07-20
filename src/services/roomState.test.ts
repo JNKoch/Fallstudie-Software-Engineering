@@ -22,9 +22,29 @@ describe("applyRoomMove", () => {
     });
   });
 
+  it("applies valid 4 Gewinnt moves", () => {
+    const state = applyRoomMove(
+      {
+        board: Array(42).fill(null),
+        currentPlayer: "red",
+        status: "playing",
+        winner: null,
+        lastMove: null,
+      },
+      "connect-four",
+      { columnIndex: 0, player: "red" },
+    );
+
+    expect(state).toMatchObject({
+      currentPlayer: "yellow",
+      status: "playing",
+      lastMove: { rowIndex: 5, columnIndex: 0, cellIndex: 35 },
+    });
+  });
+
   it("rejects unsupported game ids", () => {
     expect(() => applyRoomMove({}, "unknown", { cellIndex: 0, symbol: "X" })).toThrow(
-      "Dieses Spiel unterstuetzt noch keine Online-Zuege.",
+      "Dieses Spiel unterstützt noch keine Online-Züge.",
     );
   });
 });

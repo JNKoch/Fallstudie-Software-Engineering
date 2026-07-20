@@ -52,6 +52,6 @@ describe("App", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Digitale Brettspiele" })).toBeInTheDocument();
-    expect(screen.getByText("Dashboard fuer Online-Brettspiele mit Freunden.")).toBeInTheDocument();
+    expect(screen.getByText("Dashboard für Online-Brettspiele mit Freunden.")).toBeInTheDocument();
   });
 });

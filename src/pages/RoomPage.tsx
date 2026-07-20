@@ -3,10 +3,58 @@ import { Link, useParams } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { getGameById } from "../games/gameRegistry";
+import { ConnectFourBoard } from "../games/connect-four";
+import {
+  getConnectFourPlayerLabel,
+  type ConnectFourPlayer,
+  type ConnectFourState,
+} from "../games/connect-four/logic/connectFourLogic";
 import { TicTacToeBoard } from "../games/tic-tac-toe";
-import type { TicTacToeState } from "../games/tic-tac-toe/logic/ticTacToeLogic";
-import { createAuthedMultiplayerService, type GameRoom } from "../services/multiplayerService";
+import type { TicTacToeState, TicTacToeSymbol } from "../games/tic-tac-toe/logic/ticTacToeLogic";
+import {
+  createAuthedMultiplayerService,
+  type GameRoom,
+  type PlayerSymbol,
+} from "../services/multiplayerService";
 import styles from "./RoomPage.module.css";
+
+function isTicTacToeSymbol(symbol: PlayerSymbol | undefined): symbol is TicTacToeSymbol {
+  return symbol === "X" || symbol === "O";
+}
+
+function isConnectFourPlayer(symbol: PlayerSymbol | undefined): symbol is ConnectFourPlayer {
+  return symbol === "red" || symbol === "yellow";
+}
+
+function getPlayerLabel(gameId: string, symbol: PlayerSymbol): string {
+  return gameId === "connect-four" && isConnectFourPlayer(symbol)
+    ? getConnectFourPlayerLabel(symbol)
+    : symbol;
+}
+
+function getRoomStatusText(room: GameRoom): string {
+  if (room.status === "waiting") {
+    return "Warte auf eine zweite Person.";
+  }
+
+  if (room.game_id === "connect-four") {
+    const state = room.state as ConnectFourState;
+
+    return state.status === "won"
+      ? `${getConnectFourPlayerLabel(state.winner ?? state.currentPlayer)} hat gewonnen.`
+      : state.status === "draw"
+        ? "Unentschieden."
+        : `${getConnectFourPlayerLabel(state.currentPlayer)} ist am Zug.`;
+  }
+
+  const state = room.state as TicTacToeState;
+
+  return state.status === "won"
+    ? `${state.winner} hat gewonnen.`
+    : state.status === "draw"
+      ? "Unentschieden."
+      : `${state.currentPlayer} ist am Zug.`;
+}
 
 export function RoomPage() {
   const { gameId, roomId } = useParams();
@@ -75,7 +123,7 @@ export function RoomPage() {
     }
   }
 
-  async function handleMove(cellIndex: number) {
+  async function handleMove(moveIndex: number) {
     if (!room || !playerSymbol) {
       return;
     }
@@ -86,7 +134,10 @@ export function RoomPage() {
       const nextRoom = await service.submitMove({
         room,
         playerSymbol,
-        movePayload: { cellIndex, symbol: playerSymbol },
+        movePayload:
+          room.game_id === "connect-four"
+            ? { columnIndex: moveIndex, player: playerSymbol }
+            : { cellIndex: moveIndex, symbol: playerSymbol },
       });
       setRoom(nextRoom);
     } catch (nextError) {
@@ -120,7 +171,7 @@ export function RoomPage() {
         <div className={styles.content}>
           <h1 id="missing-game-title">Spiel nicht gefunden</h1>
           <Link className={styles.link} to="/">
-            Zurueck zum Dashboard
+            Zurück zum Dashboard
           </Link>
         </div>
       </section>
@@ -146,7 +197,7 @@ export function RoomPage() {
           <h1 id="room-load-error-title">Raum konnte nicht geladen werden</h1>
           <p>{loadError}</p>
           <Link className={styles.link} to={`/games/${game.id}`}>
-            Zurueck zum Spiel
+            Zurück zum Spiel
           </Link>
         </div>
       </section>
@@ -159,29 +210,37 @@ export function RoomPage() {
         <p className={styles.marker}>404</p>
         <div className={styles.content}>
           <h1 id="missing-room-title">Raum nicht gefunden</h1>
-          <p>Der Einladungslink ist ungueltig oder der Raum wurde geloescht.</p>
+          <p>Der Einladungslink ist ungültig oder der Raum wurde gelöscht.</p>
           <Link className={styles.link} to={`/games/${game.id}`}>
-            Zurueck zum Spiel
+            Zurück zum Spiel
           </Link>
         </div>
       </section>
     );
   }
 
-  const state = room.state as TicTacToeState;
-  const statusText =
-    state.status === "won"
-      ? `${state.winner} hat gewonnen.`
-      : state.status === "draw"
-        ? "Unentschieden."
-        : `${state.currentPlayer} ist am Zug.`;
+  if (room.game_id !== game.id) {
+    return (
+      <section className={styles.page} aria-labelledby="room-game-mismatch-title">
+        <p className={styles.marker}>404</p>
+        <div className={styles.content}>
+          <h1 id="room-game-mismatch-title">Raum gehört zu einem anderen Spiel</h1>
+          <Link className={styles.link} to={`/games/${room.game_id}/rooms/${room.id}`}>
+            Richtigen Raum öffnen
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  const statusText = getRoomStatusText(room);
 
   return (
     <section className={styles.page} aria-labelledby="room-title">
       <p className={styles.marker}>03</p>
       <div className={styles.content}>
         <Link className={styles.link} to={`/games/${game.id}`}>
-          Zurueck zum Spiel
+          Zurück zum Spiel
         </Link>
         <h1 id="room-title">{game.title}</h1>
         <div className={styles.roomGrid}>
@@ -190,7 +249,7 @@ export function RoomPage() {
             <p>{statusText}</p>
             {playerSymbol ? (
               <>
-                <p>Du spielst {playerSymbol}.</p>
+                <p>Du spielst {getPlayerLabel(room.game_id, playerSymbol)}.</p>
                 <button type="button" onClick={() => void handleRestart()} disabled={isRestarting}>
                   {isRestarting ? "Neue Runde startet" : "Neue Runde"}
                 </button>
@@ -212,19 +271,30 @@ export function RoomPage() {
             <ol>
               {room.room_players?.map((player) => (
                 <li key={player.user_id}>
-                  {player.symbol}: {player.user_id === user?.id ? "Du" : "Mitspieler"}
+                  {getPlayerLabel(room.game_id, player.symbol)}: {player.user_id === user?.id ? "Du" : "Mitspieler"}
                 </li>
               ))}
             </ol>
           </div>
         </div>
         <div className={styles.boardPanel}>
-          <TicTacToeBoard
-            disabled={state.status !== "playing"}
-            onMove={(cellIndex) => void handleMove(cellIndex)}
-            playerSymbol={playerSymbol}
-            state={state}
-          />
+          {room.game_id === "tic-tac-toe" ? (
+            <TicTacToeBoard
+              disabled={room.status !== "active"}
+              onMove={(cellIndex) => void handleMove(cellIndex)}
+              playerSymbol={isTicTacToeSymbol(playerSymbol) ? playerSymbol : undefined}
+              state={room.state as TicTacToeState}
+            />
+          ) : room.game_id === "connect-four" ? (
+            <ConnectFourBoard
+              disabled={room.status !== "active"}
+              onMove={(columnIndex) => void handleMove(columnIndex)}
+              playerSymbol={isConnectFourPlayer(playerSymbol) ? playerSymbol : undefined}
+              state={room.state as ConnectFourState}
+            />
+          ) : (
+            <p>Für dieses Spiel ist keine Online-Darstellung verfügbar.</p>
+          )}
           {moveError ? <p className={styles.error}>{moveError}</p> : null}
         </div>
       </div>

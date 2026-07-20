@@ -4,17 +4,19 @@ import { supabaseClient } from "../lib/supabaseClient";
 
 export interface RoomPlayer {
   user_id: string;
-  symbol: "X" | "O";
+  symbol: PlayerSymbol;
   player_order: number;
 }
+
+export type PlayerSymbol = "X" | "O" | "red" | "yellow";
 
 export interface GameRoom {
   id: string;
   game_id: string;
   status?: "waiting" | "active" | "finished";
   state: unknown;
-  current_player: "X" | "O" | null;
-  winner: string | null;
+  current_player: PlayerSymbol | null;
+  winner: PlayerSymbol | null;
   room_revision: number;
   room_players?: RoomPlayer[];
 }
@@ -77,7 +79,7 @@ export function createMultiplayerService(client: LooseClient | null, getUserId: 
       ensureUserId(getUserId);
       const result = (await requireSupabase(client).rpc("join_game_room", {
         p_room_id: roomId,
-      })) as QueryResult<{ room_id: string; symbol: "X" | "O" }>;
+      })) as QueryResult<{ room_id: string; symbol: PlayerSymbol }>;
 
       return assertResult(result);
     },
@@ -110,7 +112,7 @@ export function createMultiplayerService(client: LooseClient | null, getUserId: 
       movePayload,
     }: {
       room: GameRoom;
-      playerSymbol: "X" | "O";
+      playerSymbol: PlayerSymbol;
       movePayload: unknown;
     }) {
       if (room.current_player && playerSymbol !== room.current_player) {
@@ -119,27 +121,47 @@ export function createMultiplayerService(client: LooseClient | null, getUserId: 
 
       ensureUserId(getUserId);
 
-      if (room.game_id !== "tic-tac-toe") {
-        throw new Error("Dieses Spiel unterstuetzt noch keine Online-Zuege.");
+      let result: QueryResult<number>;
+
+      if (room.game_id === "tic-tac-toe") {
+        const cellIndex =
+          typeof movePayload === "object" &&
+          movePayload !== null &&
+          "cellIndex" in movePayload &&
+          typeof movePayload.cellIndex === "number"
+            ? movePayload.cellIndex
+            : null;
+
+        if (cellIndex === null) {
+          throw new Error("Der Zug ist ungültig.");
+        }
+
+        result = (await requireSupabase(client).rpc("submit_tic_tac_toe_move", {
+          p_room_id: room.id,
+          p_expected_room_revision: room.room_revision,
+          p_cell_index: cellIndex,
+        })) as QueryResult<number>;
+      } else if (room.game_id === "connect-four") {
+        const columnIndex =
+          typeof movePayload === "object" &&
+          movePayload !== null &&
+          "columnIndex" in movePayload &&
+          typeof movePayload.columnIndex === "number"
+            ? movePayload.columnIndex
+            : null;
+
+        if (columnIndex === null) {
+          throw new Error("Der Zug ist ungültig.");
+        }
+
+        result = (await requireSupabase(client).rpc("submit_connect_four_move", {
+          p_room_id: room.id,
+          p_expected_room_revision: room.room_revision,
+          p_column_index: columnIndex,
+        })) as QueryResult<number>;
+      } else {
+        throw new Error("Dieses Spiel unterstützt noch keine Online-Züge.");
       }
-
-      const cellIndex =
-        typeof movePayload === "object" &&
-        movePayload !== null &&
-        "cellIndex" in movePayload &&
-        typeof movePayload.cellIndex === "number"
-          ? movePayload.cellIndex
-          : null;
-
-      if (cellIndex === null) {
-        throw new Error("Der Zug ist ungueltig.");
-      }
-
-      const result = (await requireSupabase(client).rpc("submit_tic_tac_toe_move", {
-        p_room_id: room.id,
-        p_expected_room_revision: room.room_revision,
-        p_cell_index: cellIndex,
-      })) as QueryResult<number>;
 
       assertResult(result);
 
@@ -155,11 +177,18 @@ export function createMultiplayerService(client: LooseClient | null, getUserId: 
     async restartRoom(room: GameRoom) {
       ensureUserId(getUserId);
 
-      if (room.game_id !== "tic-tac-toe") {
-        throw new Error("Dieses Spiel unterstuetzt noch keine neue Runde.");
+      const restartFunction =
+        room.game_id === "tic-tac-toe"
+          ? "restart_tic_tac_toe_room"
+          : room.game_id === "connect-four"
+            ? "restart_connect_four_room"
+            : null;
+
+      if (!restartFunction) {
+        throw new Error("Dieses Spiel unterstützt noch keine neue Runde.");
       }
 
-      const result = (await requireSupabase(client).rpc("restart_tic_tac_toe_room", {
+      const result = (await requireSupabase(client).rpc(restartFunction, {
         p_room_id: room.id,
         p_expected_room_revision: room.room_revision,
       })) as QueryResult<number>;
