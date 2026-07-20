@@ -130,11 +130,11 @@ export function canPlayCard(
   skipCountOnPile: number = 0
 ): boolean {
   // If a SKIP previously started the pile and we are awaiting choice:
-  // N SKIPs allow (N+1) or (13-N) to set direction, or another SKIP to stack
+  // N SKIPs allow (N+1) or (12-N) to set direction, or another SKIP to stack
   if (awaitingChoice) {
     if (cardValue === "SKIP") return true; // Allow stacking more SKIPs
     const decisionHigh = skipCountOnPile + 1;
-    const decisionLow = 13 - skipCountOnPile;
+    const decisionLow = 12 - skipCountOnPile;
     return Number(cardValue) === decisionHigh || Number(cardValue) === decisionLow;
   }
 
@@ -206,7 +206,7 @@ export function applySkipBoMove(
     const failedState = JSON.parse(JSON.stringify(state)) as SkipBoState;
     if (awaitingChoice) {
       const decisionHigh = skipCountOnPile + 1;
-      const decisionLow = 13 - skipCountOnPile;
+      const decisionLow = 12 - skipCountOnPile;
       failedState.message = `Dieser Stapel wartet auf die Richtung: lege ${decisionHigh} (↑) oder ${decisionLow} (↓).`;
     } else if (pileEmpty) {
       failedState.message = `Leerer Stapel: spiele 1 oder 12, um den Stapel zu starten.`;
@@ -267,10 +267,10 @@ export function applySkipBoMove(
     }
   } else if (wasAwaitingChoice) {
     // resolving SKIP-started pile by playing a decision card
-    // The decision card is (skipCount + 1) for up or (13 - skipCount) for down
+    // The decision card is (skipCount + 1) for up or (12 - skipCount) for down
     const playedNum = Number(playedValue);
     const decisionHigh = skipCountOnPile + 1;
-    const decisionLow = 13 - skipCountOnPile;
+    const decisionLow = 12 - skipCountOnPile;
     
     if (playedValue === "SKIP") {
       // Another SKIP: stay in awaitingChoice
