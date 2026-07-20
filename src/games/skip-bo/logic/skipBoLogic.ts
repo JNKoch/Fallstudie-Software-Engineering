@@ -14,9 +14,12 @@ export interface PlayerHand {
   discardPiles: Card[][];
 }
 
+export type FoundationDirection = "up" | "down" | null;
+
 export interface GameBoard {
   foundationPiles: Card[][];
-  nextNeededValue: (string | number)[];
+  nextNeededValue: (number | null)[];
+  foundationDirections: FoundationDirection[];
 }
 
 export type SkipBoStatus = "playing" | "won" | "draw";
@@ -107,7 +110,8 @@ export function createInitialSkipBoState(playerCount: number = 2): SkipBoState {
     players,
     board: {
       foundationPiles: Array(4).fill(null).map(() => []),
-      nextNeededValue: [1, 1, 1, 1],
+      nextNeededValue: [null, null, null, null],
+      foundationDirections: [null, null, null, null],
     },
     currentPlayerIndex: 0,
     status: "playing",
@@ -116,9 +120,20 @@ export function createInitialSkipBoState(playerCount: number = 2): SkipBoState {
   };
 }
 
-export function canPlayCard(cardValue: CardValue, nextNeeded: string | number): boolean {
+export function canPlayCard(
+  cardValue: CardValue,
+  nextNeeded: number | null,
+  direction: FoundationDirection | null
+): boolean {
+  // SKIP weiterhin als Joker erlauben
   if (cardValue === "SKIP") return true;
-  if (nextNeeded === "complete") return false;
+
+  // Wenn Stapel leer ist, darf nur mit 1 oder 12 begonnen werden
+  if (nextNeeded === null) {
+    return cardValue === "1" || cardValue === "12";
+  }
+
+  // Sonstige Fälle: Zahl muss exakt dem nextNeeded entsprechen
   return Number(cardValue) === nextNeeded;
 }
 
@@ -166,20 +181,22 @@ export function applySkipBoMove(
   }
 
   const nextNeeded = state.board.nextNeededValue[move.foundationIndex];
+  const direction = state.board.foundationDirections[move.foundationIndex];
+  const pileEmpty = nextNeeded === null;
 
-  if (!canPlayCard(card.value, nextNeeded)) {
-    // Ungültiger Zug — nicht werfen, sondern Zustand mit Meldung zurückgeben, damit das Spiel weiterläuft
+  if (!canPlayCard(card.value, nextNeeded, direction)) {
     const failedState = JSON.parse(JSON.stringify(state)) as SkipBoState;
-    failedState.message = `Du kannst diese Karte nicht spielen. Benötigt: ${nextNeeded}`;
+    failedState.message = pileEmpty
+      ? `Leerer Stapel: spiele 1 oder 12, um den Stapel zu starten.`
+      : `Du kannst diese Karte nicht spielen. Benötigt: ${nextNeeded}`;
     return failedState;
   }
 
   const newState = JSON.parse(JSON.stringify(state)) as SkipBoState;
   const newPlayer = newState.players[move.playerIndex];
 
-  // Karte vom jeweiligen Ort entfernen
+  // Karte vom jeweiligen Ort entfernen und auf Foundation legen
   if (playingFromStock) {
-    // visibleStock wurde gespielt; decke die nächste Karte vom stockPile auf
     newState.board.foundationPiles[move.foundationIndex].push(card);
     newPlayer.visibleStock = newPlayer.stockPile.length > 0 ? newPlayer.stockPile.pop()! : null;
   } else if (playingFromDiscard) {
@@ -192,25 +209,44 @@ export function applySkipBoMove(
     newState.board.foundationPiles[move.foundationIndex].push(removed);
   }
 
-  // nextNeededValue aktualisieren
+  // Update direction and nextNeeded based on played card and previous state
   const playedValue = card.value;
-  if (playedValue === "SKIP") {
-    if (nextNeeded === "complete") {
-      newState.board.nextNeededValue[move.foundationIndex] = "complete";
+  // If pile was empty, set direction when starting with 1 -> up, 12 -> down; SKIP defaults to up
+  if (pileEmpty) {
+    if (playedValue === "1") {
+      newState.board.foundationDirections[move.foundationIndex] = "up";
+      newState.board.nextNeededValue[move.foundationIndex] = 2;
+    } else if (playedValue === "12") {
+      newState.board.foundationDirections[move.foundationIndex] = "down";
+      newState.board.nextNeededValue[move.foundationIndex] = 11;
+    } else if (playedValue === "SKIP") {
+      // Default: start upwards when SKIP begins an empty pile
+      newState.board.foundationDirections[move.foundationIndex] = "up";
+      newState.board.nextNeededValue[move.foundationIndex] = 2;
     } else {
-      const nextValue = Number(nextNeeded) + 1;
-      if (nextValue > 12) {
-        newState.board.nextNeededValue[move.foundationIndex] = 1;
-      } else {
-        newState.board.nextNeededValue[move.foundationIndex] = nextValue;
-      }
+      // should not happen due to canPlayCard, but safeguard
+      newState.board.foundationDirections[move.foundationIndex] = "up";
+      newState.board.nextNeededValue[move.foundationIndex] = 2;
     }
   } else {
-    const nextValue = Number(playedValue) + 1;
-    if (nextValue > 12) {
-      newState.board.nextNeededValue[move.foundationIndex] = 1;
+    const dir = newState.board.foundationDirections[move.foundationIndex];
+    if (playedValue === "SKIP") {
+      if (dir === "down") {
+        const nextValue = (Number(nextNeeded) - 1) < 1 ? 12 : Number(nextNeeded) - 1;
+        newState.board.nextNeededValue[move.foundationIndex] = nextValue;
+      } else {
+        const nextValue = (Number(nextNeeded) + 1) > 12 ? 1 : Number(nextNeeded) + 1;
+        newState.board.nextNeededValue[move.foundationIndex] = nextValue;
+      }
     } else {
-      newState.board.nextNeededValue[move.foundationIndex] = nextValue;
+      // numeric card played
+      if (dir === "down") {
+        const nextValue = Number(playedValue) - 1;
+        newState.board.nextNeededValue[move.foundationIndex] = nextValue < 1 ? 12 : nextValue;
+      } else {
+        const nextValue = Number(playedValue) + 1;
+        newState.board.nextNeededValue[move.foundationIndex] = nextValue > 12 ? 1 : nextValue;
+      }
     }
   }
 

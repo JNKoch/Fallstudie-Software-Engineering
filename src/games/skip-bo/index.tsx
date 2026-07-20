@@ -227,7 +227,15 @@ function SkipBoBoard({
             disabled={selectedCardIndex === null || disabled}
           >
             <p>Stapel {foundationIndex + 1}</p>
-            <p>Nächst: {state.board.nextNeededValue[foundationIndex]}</p>
+            <p>
+              {state.board.nextNeededValue[foundationIndex] === null ? (
+                "Start: 1 oder 12"
+              ) : (
+                `Nächst: ${state.board.nextNeededValue[foundationIndex]} ${
+                  state.board.foundationDirections[foundationIndex] === "down" ? "(↓)" : "(↑)"
+                }`
+              )}
+            </p>
             {pile.length > 0 && (
               <div className={styles.card}>
                 <span className={styles.cardValue}>{pile[pile.length - 1]?.value}</span>
