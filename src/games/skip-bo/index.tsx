@@ -10,6 +10,15 @@ import {
 } from "./logic/skipBoLogic";
 import styles from "./styles/SkipBo.module.css";
 
+function getCardColorClass(value: string) {
+  if (value === "SKIP") return styles.cardSKIP;
+  const n = Number(value);
+  if (n >= 1 && n <= 4) return styles.cardBlue;
+  if (n >= 5 && n <= 8) return styles.cardGreen;
+  if (n >= 9 && n <= 12) return styles.cardRed;
+  return styles.card; // fallback
+}
+
 function SkipBoGame() {
   const [state, setState] = useState(createInitialSkipBoState(2));
   const [error, setError] = useState("");
@@ -18,14 +27,6 @@ function SkipBoGame() {
 
   const currentPlayer = state.players[state.currentPlayerIndex];
 
-  function getCardColorClass(value: string) {
-    if (value === "SKIP") return styles.cardSKIP;
-    const n = Number(value);
-    if (n >= 1 && n <= 4) return styles.cardBlue;
-    if (n >= 5 && n <= 8) return styles.cardGreen;
-    if (n >= 9 && n <= 12) return styles.cardRed;
-    return styles.card; // fallback
-  }
 
   const statusText =
     state.status === "won"
