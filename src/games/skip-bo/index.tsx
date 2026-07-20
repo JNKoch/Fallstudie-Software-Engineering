@@ -242,7 +242,18 @@ function SkipBoBoard({
             <p>Stapel {foundationIndex + 1}</p>
             <p>
               {state.board.foundationAwaitingChoice[foundationIndex] ? (
-                "Wartet: lege 2 (↑) oder 11 (↓)"
+                (() => {
+                  const skipCount = state.board.foundationPiles[foundationIndex].filter(c => c.value === "SKIP").length;
+                  const decisionHigh = skipCount + 1;
+                  const decisionLow = 12 - skipCount;
+                  if (skipCount === 12) {
+                    return "Voll: 12 SKIPs (nur SKIP spielbar)";
+                  } else if (decisionHigh > 12 || decisionLow < 1) {
+                    return `Wartet: Nur SKIP (${skipCount} SKIPs)`;
+                  } else {
+                    return `Wartet: ${decisionHigh} (↑) oder ${decisionLow} (↓)`;
+                  }
+                })()
               ) : state.board.nextNeededValue[foundationIndex] === null ? (
                 "Start: 1 oder 12"
               ) : (

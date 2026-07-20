@@ -207,7 +207,13 @@ export function applySkipBoMove(
     if (awaitingChoice) {
       const decisionHigh = skipCountOnPile + 1;
       const decisionLow = 12 - skipCountOnPile;
-      failedState.message = `Dieser Stapel wartet auf die Richtung: lege ${decisionHigh} (↑) oder ${decisionLow} (↓).`;
+      if (skipCountOnPile === 12) {
+        failedState.message = `Dieser Stapel ist voll (12 SKIPs). Nur SKIP kann noch gespielt werden.`;
+      } else if (decisionHigh > 12 || decisionLow < 1) {
+        failedState.message = `Dieser Stapel wartet (${skipCountOnPile} SKIPs). Nur SKIP kann noch gespielt werden.`;
+      } else {
+        failedState.message = `Dieser Stapel wartet auf die Richtung: lege ${decisionHigh} (↑) oder ${decisionLow} (↓).`;
+      }
     } else if (pileEmpty) {
       failedState.message = `Leerer Stapel: spiele 1 oder 12, um den Stapel zu starten.`;
     } else {
