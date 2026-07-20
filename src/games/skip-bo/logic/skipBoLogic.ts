@@ -20,6 +20,7 @@ export interface GameBoard {
   foundationPiles: Card[][];
   nextNeededValue: (number | null)[];
   foundationDirections: FoundationDirection[];
+  foundationAwaitingChoice: boolean[]; // true when a SKIP started the pile and awaits 2 or 11
 }
 
 export type SkipBoStatus = "playing" | "won" | "draw";
@@ -112,6 +113,7 @@ export function createInitialSkipBoState(playerCount: number = 2): SkipBoState {
       foundationPiles: Array(4).fill(null).map(() => []),
       nextNeededValue: [null, null, null, null],
       foundationDirections: [null, null, null, null],
+      foundationAwaitingChoice: [false, false, false, false],
     },
     currentPlayerIndex: 0,
     status: "playing",
@@ -123,9 +125,15 @@ export function createInitialSkipBoState(playerCount: number = 2): SkipBoState {
 export function canPlayCard(
   cardValue: CardValue,
   nextNeeded: number | null,
-  direction: FoundationDirection | null
+  direction: FoundationDirection | null,
+  awaitingChoice: boolean
 ): boolean {
-  // SKIP weiterhin als Joker erlauben
+  // If a SKIP previously started the pile and we are awaiting choice, only 2 or 11 decide direction
+  if (awaitingChoice) {
+    return cardValue === "2" || cardValue === "11";
+  }
+
+  // SKIP weiterhin als Joker erlauben (wenn not awaiting choice)
   if (cardValue === "SKIP") return true;
 
   // Wenn Stapel leer ist, darf nur mit 1 oder 12 begonnen werden
@@ -182,13 +190,18 @@ export function applySkipBoMove(
 
   const nextNeeded = state.board.nextNeededValue[move.foundationIndex];
   const direction = state.board.foundationDirections[move.foundationIndex];
-  const pileEmpty = nextNeeded === null;
+  const awaitingChoice = state.board.foundationAwaitingChoice[move.foundationIndex];
+  const pileEmpty = state.board.foundationPiles[move.foundationIndex].length === 0;
 
-  if (!canPlayCard(card.value, nextNeeded, direction)) {
+  if (!canPlayCard(card.value, nextNeeded, direction, awaitingChoice)) {
     const failedState = JSON.parse(JSON.stringify(state)) as SkipBoState;
-    failedState.message = pileEmpty
-      ? `Leerer Stapel: spiele 1 oder 12, um den Stapel zu starten.`
-      : `Du kannst diese Karte nicht spielen. Benötigt: ${nextNeeded}`;
+    if (awaitingChoice) {
+      failedState.message = `Dieser Stapel wartet auf die Richtung: lege 2 (↑) oder 11 (↓).`;
+    } else if (pileEmpty) {
+      failedState.message = `Leerer Stapel: spiele 1 oder 12, um den Stapel zu starten.`;
+    } else {
+      failedState.message = `Du kannst diese Karte nicht spielen. Benötigt: ${nextNeeded}`;
+    }
     return failedState;
   }
 
@@ -211,22 +224,42 @@ export function applySkipBoMove(
 
   // Update direction and nextNeeded based on played card and previous state
   const playedValue = card.value;
-  // If pile was empty, set direction when starting with 1 -> up, 12 -> down; SKIP defaults to up
+  // If pile was empty, set direction when starting with 1 -> up, 12 -> down.
+  // If SKIP started the pile previously, we may be resolving that awaitingChoice now by playing 2 or 11.
+  const wasAwaitingChoice = state.board.foundationAwaitingChoice[move.foundationIndex];
   if (pileEmpty) {
     if (playedValue === "1") {
       newState.board.foundationDirections[move.foundationIndex] = "up";
       newState.board.nextNeededValue[move.foundationIndex] = 2;
+      newState.board.foundationAwaitingChoice[move.foundationIndex] = false;
     } else if (playedValue === "12") {
       newState.board.foundationDirections[move.foundationIndex] = "down";
       newState.board.nextNeededValue[move.foundationIndex] = 11;
+      newState.board.foundationAwaitingChoice[move.foundationIndex] = false;
     } else if (playedValue === "SKIP") {
-      // Default: start upwards when SKIP begins an empty pile
-      newState.board.foundationDirections[move.foundationIndex] = "up";
-      newState.board.nextNeededValue[move.foundationIndex] = 2;
+      // SKIP started the pile — mark awaiting choice so next play must be 2 or 11
+      newState.board.foundationDirections[move.foundationIndex] = null;
+      newState.board.nextNeededValue[move.foundationIndex] = null;
+      newState.board.foundationAwaitingChoice[move.foundationIndex] = true;
     } else {
       // should not happen due to canPlayCard, but safeguard
       newState.board.foundationDirections[move.foundationIndex] = "up";
       newState.board.nextNeededValue[move.foundationIndex] = 2;
+      newState.board.foundationAwaitingChoice[move.foundationIndex] = false;
+    }
+  } else if (wasAwaitingChoice) {
+    // resolving SKIP-started pile by playing 2 or 11
+    if (playedValue === "2") {
+      newState.board.foundationDirections[move.foundationIndex] = "up";
+      newState.board.nextNeededValue[move.foundationIndex] = 3; // 2 was played, next is 3
+      newState.board.foundationAwaitingChoice[move.foundationIndex] = false;
+    } else if (playedValue === "11") {
+      newState.board.foundationDirections[move.foundationIndex] = "down";
+      newState.board.nextNeededValue[move.foundationIndex] = 10; // 11 played, next 10
+      newState.board.foundationAwaitingChoice[move.foundationIndex] = false;
+    } else {
+      // should not be allowed by canPlayCard
+      newState.board.foundationAwaitingChoice[move.foundationIndex] = true;
     }
   } else {
     const dir = newState.board.foundationDirections[move.foundationIndex];

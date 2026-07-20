@@ -228,7 +228,9 @@ function SkipBoBoard({
           >
             <p>Stapel {foundationIndex + 1}</p>
             <p>
-              {state.board.nextNeededValue[foundationIndex] === null ? (
+              {state.board.foundationAwaitingChoice[foundationIndex] ? (
+                "Wartet: lege 2 (↑) oder 11 (↓)"
+              ) : state.board.nextNeededValue[foundationIndex] === null ? (
                 "Start: 1 oder 12"
               ) : (
                 `Nächst: ${state.board.nextNeededValue[foundationIndex]} ${
