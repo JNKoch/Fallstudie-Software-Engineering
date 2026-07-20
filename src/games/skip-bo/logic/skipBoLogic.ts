@@ -283,11 +283,9 @@ export function applySkipBoMove(
     }
   }
 
-  // Gewinnbedingung: keine Karten in Hand, kein sichtbarer Stock und kein Stock-Deck, sowie alle Discard-Piles leer
-  const noHand = newPlayer.cards.length === 0;
-  const noStock = newPlayer.stockPile.length === 0 && newPlayer.visibleStock === null;
-  const discardEmpty = newPlayer.discardPiles.every((pile) => pile.length === 0);
-  if (noHand && noStock && discardEmpty) {
+  // Gewinnbedingung: Spieler gewinnt sobald sein Startstapel komplett leer ist (inkl. visibleStock).
+  const stackEmpty = newPlayer.stockPile.length === 0 && newPlayer.visibleStock === null;
+  if (stackEmpty) {
     newState.status = "won";
     newState.winner = move.playerIndex;
     newState.message = `Spieler ${move.playerIndex + 1} hat gewonnen!`;
