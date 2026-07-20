@@ -5,6 +5,7 @@ import {
   applySkipBoMove,
   createInitialSkipBoState,
   endTurn,
+  discardHandCardAndEndTurn,
   type SkipBoState,
 } from "./logic/skipBoLogic";
 import styles from "./styles/SkipBo.module.css";
@@ -13,6 +14,7 @@ function SkipBoGame() {
   const [state, setState] = useState(createInitialSkipBoState(2));
   const [error, setError] = useState("");
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
+  const [selectedDiscardTarget, setSelectedDiscardTarget] = useState<number | null>(null);
 
   const currentPlayer = state.players[state.currentPlayerIndex];
   const statusText =
@@ -41,6 +43,31 @@ function SkipBoGame() {
 
   function handleSelectCard(cardIndex: number) {
     setSelectedCardIndex(selectedCardIndex === cardIndex ? null : cardIndex);
+    setSelectedDiscardTarget(null);
+    setError("");
+  }
+
+  function handleSelectDiscardPile(pIndex: number) {
+    // If a hand-card is selected, use this as the discard target and end the turn
+    if (selectedCardIndex !== null && selectedCardIndex >= 0) {
+      // perform discard-and-end-turn
+      try {
+        setError("");
+        setState((currentState) =>
+          discardHandCardAndEndTurn(currentState, currentState.currentPlayerIndex, selectedCardIndex!, pIndex)
+        );
+        setSelectedCardIndex(null);
+        setSelectedDiscardTarget(null);
+      } catch (nextError) {
+        setError(nextError instanceof Error ? nextError.message : "Ablegen fehlgeschlagen.");
+      }
+      return;
+    }
+
+    // Otherwise toggle selecting this discard pile as a source to play from
+    const encoded = -(2 + pIndex);
+    setSelectedCardIndex(selectedCardIndex === encoded ? null : encoded);
+    setSelectedDiscardTarget(selectedCardIndex === encoded ? null : pIndex);
     setError("");
   }
 
@@ -50,9 +77,23 @@ function SkipBoGame() {
   }
 
   function handleEndTurn() {
+    // Enforce that at end of turn a hand card must be discarded — if none selected or target not set, error
+    if (selectedCardIndex === null || selectedCardIndex < 0) {
+      setError("Wähle eine Handkarte aus, die du ablegen möchtest, bevor du den Zug beendest.");
+      return;
+    }
+    if (selectedDiscardTarget === null) {
+      setError("Wähle einen Ablage-Stapel (1-4) als Ziel für die abzulegende Karte.");
+      return;
+    }
+
     try {
       setError("");
-      setState((currentState) => endTurn(currentState, currentState.currentPlayerIndex));
+      setState((currentState) =>
+        discardHandCardAndEndTurn(currentState, currentState.currentPlayerIndex, selectedCardIndex!, selectedDiscardTarget!)
+      );
+      setSelectedCardIndex(null);
+      setSelectedDiscardTarget(null);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "Zug konnte nicht beendet werden.");
     }
@@ -116,23 +157,41 @@ function SkipBoGame() {
           )}
         </div>
 
-        <strong>Hand ({currentPlayer.cards.length} Karten):</strong>
-        <div className={styles.hand}>
-          {currentPlayer.cards.map((card, index) => (
+      <strong>Deine Ablagestapel:</strong>
+      <div className={styles.discardRow}>
+        {currentPlayer.discardPiles.map((pile, pIndex) => (
             <button
-              key={card.id}
-              className={`${styles.card} ${card.value === "SKIP" ? styles.cardSKIP : ""} ${
-                selectedCardIndex === index ? styles.cardSelected : ""
-              }`}
-              onClick={() => handleSelectCard(index)}
-              title={`Karte ${index}: ${card.value}`}
+            key={`discard-${pIndex}`}
+            className={`${styles.card} ${pile[pile.length - 1]?.value === "SKIP" ? styles.cardSKIP : ""} ${
+              selectedCardIndex === -(2 + pIndex) ? styles.cardSelected : ""
+            } ${selectedDiscardTarget === pIndex ? styles.cardTarget : ""}`}
+            onClick={() => handleSelectDiscardPile(pIndex)}
+            title={pile.length > 0 ? `Ablage ${pIndex}: ${pile[pile.length - 1]?.value}` : `Ablage ${pIndex}: leer`}
               type="button"
               disabled={state.status !== "playing"}
             >
-              <span className={styles.cardValue}>{card.value}</span>
+            {pile.length > 0 ? <span className={styles.cardValue}>{pile[pile.length - 1]?.value}</span> : <span className={styles.cardBlankSmall}>leer</span>}
             </button>
           ))}
         </div>
+
+      <strong>Hand ({currentPlayer.cards.length} Karten):</strong>
+      <div className={styles.hand}>
+        {currentPlayer.cards.map((card, index) => (
+          <button
+            key={card.id}
+            className={`${styles.card} ${card.value === "SKIP" ? styles.cardSKIP : ""} ${
+              selectedCardIndex === index ? styles.cardSelected : ""
+            }`}
+            onClick={() => handleSelectCard(index)}
+            title={`Karte ${index}: ${card.value}`}
+            type="button"
+            disabled={state.status !== "playing"}
+          >
+            <span className={styles.cardValue}>{card.value}</span>
+          </button>
+        ))}
+      </div>
       </div>
 
       {error ? <p className={styles.error}>{error}</p> : null}

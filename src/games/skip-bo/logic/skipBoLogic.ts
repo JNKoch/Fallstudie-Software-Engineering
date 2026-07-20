@@ -32,6 +32,10 @@ export interface SkipBoState {
 
 export interface SkipBoMove {
   playerIndex: number;
+  // cardIndex encoding:
+  // >=0 : index in hand
+  // -1 : visibleStock
+  // -2..-5 : discard pile index = -(cardIndex + 2)
   cardIndex: number;
   foundationIndex: number;
 }
@@ -143,7 +147,20 @@ export function applySkipBoMove(
     throw new Error("Ungültige Foundation-Pile.");
   }
 
-  const card = playingFromStock ? player.visibleStock : player.cards[move.cardIndex];
+  let card: Card | undefined;
+  let playingFromDiscard = false;
+  if (playingFromStock) {
+    card = player.visibleStock ?? undefined;
+  } else if (move.cardIndex <= -2) {
+    // discard pile source
+    const pileIndex = -(move.cardIndex + 2);
+    const pile = player.discardPiles[pileIndex];
+    card = pile && pile.length > 0 ? pile[pile.length - 1] : undefined;
+    playingFromDiscard = true;
+  } else {
+    card = player.cards[move.cardIndex];
+  }
+
   if (!card) {
     throw new Error("Keine Karte zum Spielen vorhanden.");
   }
@@ -165,6 +182,11 @@ export function applySkipBoMove(
     // visibleStock wurde gespielt; decke die nächste Karte vom stockPile auf
     newState.board.foundationPiles[move.foundationIndex].push(card);
     newPlayer.visibleStock = newPlayer.stockPile.length > 0 ? newPlayer.stockPile.pop()! : null;
+  } else if (playingFromDiscard) {
+    const pileIndex = -(move.cardIndex + 2);
+    newState.board.foundationPiles[move.foundationIndex].push(
+      newPlayer.discardPiles[pileIndex].pop() as Card
+    );
   } else {
     const removed = newPlayer.cards.splice(move.cardIndex, 1)[0];
     newState.board.foundationPiles[move.foundationIndex].push(removed);
@@ -205,6 +227,36 @@ export function applySkipBoMove(
 
   newState.message = "";
   return newState;
+}
+
+/**
+ * Discard a hand card into one of four discard piles and then end the current player's turn.
+ * This enforces the rule: at the end of each turn a hand card must be discarded.
+ */
+export function discardHandCardAndEndTurn(
+  state: SkipBoState,
+  playerIndex: number,
+  handCardIndex: number,
+  discardPileIndex: number
+): SkipBoState {
+  if (playerIndex !== state.currentPlayerIndex) {
+    throw new Error("Spieler sind nicht am Zug.");
+  }
+  if (handCardIndex < 0 || handCardIndex >= state.players[playerIndex].cards.length) {
+    throw new Error("Ungültige Hand-Kartennummer zum Ablegen.");
+  }
+  if (discardPileIndex < 0 || discardPileIndex >= 4) {
+    throw new Error("Ungültiger Ablage-Stapel.");
+  }
+
+  const newState = JSON.parse(JSON.stringify(state)) as SkipBoState;
+  const player = newState.players[playerIndex];
+
+  const card = player.cards.splice(handCardIndex, 1)[0];
+  player.discardPiles[discardPileIndex].push(card);
+
+  // Now end the turn (refill next player's hand)
+  return endTurn(newState, playerIndex);
 }
 
 /**
