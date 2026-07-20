@@ -44,6 +44,28 @@ describe("multiplayerService", () => {
     expect(rpc).toHaveBeenCalledTimes(1);
   });
 
+  it("returns null when a room row is not found", async () => {
+    const rooms = createQueryBuilder({
+      data: null,
+      error: { code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned" },
+    });
+    const from = vi.fn(() => rooms);
+    const service = createMultiplayerService({ from } as never, () => "user-1");
+
+    await expect(service.loadRoom("missing-room")).resolves.toBeNull();
+  });
+
+  it("raises database errors while loading rooms", async () => {
+    const rooms = createQueryBuilder({
+      data: null,
+      error: { code: "42P17", message: "infinite recursion detected in policy for relation room_players" },
+    });
+    const from = vi.fn(() => rooms);
+    const service = createMultiplayerService({ from } as never, () => "user-1");
+
+    await expect(service.loadRoom("room-1")).rejects.toThrow("infinite recursion detected");
+  });
+
   it("rejects moves from the wrong player before writing", async () => {
     const service = createMultiplayerService({ rpc: vi.fn() } as never, () => "user-2");
 
@@ -109,6 +131,59 @@ describe("multiplayerService", () => {
     });
 
     expect(updatedRoom).toEqual(roomRecord);
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(from).toHaveBeenCalledWith("game_rooms");
+  });
+
+  it("restarts a tic-tac-toe room through an atomic rpc and reloads the room", async () => {
+    const restartedRoom = {
+      id: "room-1",
+      game_id: "tic-tac-toe",
+      status: "active",
+      state: {
+        board: Array(9).fill(null),
+        currentPlayer: "X",
+        status: "playing",
+        winner: null,
+      },
+      current_player: "X",
+      winner: null,
+      room_revision: 8,
+      room_players: [
+        { user_id: "user-1", symbol: "X", player_order: 1 },
+        { user_id: "user-2", symbol: "O", player_order: 2 },
+      ],
+    };
+    const rooms = createQueryBuilder({ data: restartedRoom, error: null });
+    const rpc = vi.fn(async (fn: string, args: unknown) => {
+      expect(fn).toBe("restart_tic_tac_toe_room");
+      expect(args).toEqual({
+        p_room_id: "room-1",
+        p_expected_room_revision: 7,
+      });
+      return { data: 8, error: null };
+    });
+    const from = vi.fn((table: string) => {
+      expect(table).toBe("game_rooms");
+      return rooms;
+    });
+    const service = createMultiplayerService({ from, rpc } as never, () => "user-1");
+
+    const updatedRoom = await service.restartRoom({
+      id: "room-1",
+      game_id: "tic-tac-toe",
+      room_revision: 7,
+      state: {
+        board: ["X", "X", "X", null, "O", null, null, "O", null],
+        currentPlayer: "X",
+        status: "won",
+        winner: "X",
+      },
+      current_player: null,
+      winner: "X",
+    });
+
+    expect(updatedRoom).toEqual(restartedRoom);
     expect(rpc).toHaveBeenCalledTimes(1);
     expect(from).toHaveBeenCalledWith("game_rooms");
   });

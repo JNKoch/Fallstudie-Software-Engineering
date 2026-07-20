@@ -16,16 +16,26 @@ export function RoomPage() {
   const [room, setRoom] = useState<GameRoom | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
   const [moveError, setMoveError] = useState("");
+  const [restartError, setRestartError] = useState("");
+  const [isRestarting, setIsRestarting] = useState(false);
 
   const loadRoom = useCallback(async () => {
     if (!roomId) {
       return;
     }
 
-    const nextRoom = await service.loadRoom(roomId);
-    setRoom(nextRoom);
-    setIsLoading(false);
+    try {
+      const nextRoom = await service.loadRoom(roomId);
+      setRoom(nextRoom);
+      setLoadError("");
+    } catch (nextError) {
+      setRoom(null);
+      setLoadError(nextError instanceof Error ? nextError.message : "Raum konnte nicht geladen werden.");
+    } finally {
+      setIsLoading(false);
+    }
   }, [roomId, service]);
 
   useEffect(() => {
@@ -84,6 +94,25 @@ export function RoomPage() {
     }
   }
 
+  async function handleRestart() {
+    if (!room || !playerSymbol) {
+      return;
+    }
+
+    setRestartError("");
+    setIsRestarting(true);
+
+    try {
+      const nextRoom = await service.restartRoom(room);
+      setRoom(nextRoom);
+      setMoveError("");
+    } catch (nextError) {
+      setRestartError(nextError instanceof Error ? nextError.message : "Neue Runde konnte nicht gestartet werden.");
+    } finally {
+      setIsRestarting(false);
+    }
+  }
+
   if (!game) {
     return (
       <section className={styles.page} aria-labelledby="missing-game-title">
@@ -104,6 +133,21 @@ export function RoomPage() {
         <p className={styles.marker}>03</p>
         <div className={styles.content}>
           <h1 id="room-loading-title">Raum wird geladen</h1>
+        </div>
+      </section>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <section className={styles.page} aria-labelledby="room-load-error-title">
+        <p className={styles.marker}>404</p>
+        <div className={styles.content}>
+          <h1 id="room-load-error-title">Raum konnte nicht geladen werden</h1>
+          <p>{loadError}</p>
+          <Link className={styles.link} to={`/games/${game.id}`}>
+            Zurueck zum Spiel
+          </Link>
         </div>
       </section>
     );
@@ -144,8 +188,20 @@ export function RoomPage() {
           <div className={styles.panel}>
             <h2>Status</h2>
             <p>{statusText}</p>
-            {playerSymbol ? <p>Du spielst {playerSymbol}.</p> : <button onClick={() => void handleJoin()}>Raum beitreten</button>}
+            {playerSymbol ? (
+              <>
+                <p>Du spielst {playerSymbol}.</p>
+                <button type="button" onClick={() => void handleRestart()} disabled={isRestarting}>
+                  {isRestarting ? "Neue Runde startet" : "Neue Runde"}
+                </button>
+              </>
+            ) : (
+              <button type="button" onClick={() => void handleJoin()}>
+                Raum beitreten
+              </button>
+            )}
             {error ? <p className={styles.error}>{error}</p> : null}
+            {restartError ? <p className={styles.error}>{restartError}</p> : null}
           </div>
           <div className={styles.panel}>
             <h2>Einladung</h2>
