@@ -17,6 +17,16 @@ function SkipBoGame() {
   const [selectedDiscardTarget, setSelectedDiscardTarget] = useState<number | null>(null);
 
   const currentPlayer = state.players[state.currentPlayerIndex];
+
+  function getCardColorClass(value: string) {
+    if (value === "SKIP") return styles.cardSKIP;
+    const n = Number(value);
+    if (n >= 1 && n <= 4) return styles.cardBlue;
+    if (n >= 5 && n <= 8) return styles.cardGreen;
+    if (n >= 9 && n <= 12) return styles.cardRed;
+    return styles.card; // fallback
+  }
+
   const statusText =
     state.status === "won"
       ? `Spieler ${(state.winner ?? 0) + 1} hat gewonnen!`
@@ -142,7 +152,7 @@ function SkipBoGame() {
           {currentPlayer.visibleStock ? (
             <button
               key={currentPlayer.visibleStock.id}
-              className={`${styles.card} ${currentPlayer.visibleStock.value === "SKIP" ? styles.cardSKIP : ""} ${
+              className={`${styles.card} ${getCardColorClass(currentPlayer.visibleStock.value)} ${
                 selectedCardIndex === -1 ? styles.cardSelected : ""
               }`}
               onClick={() => handleSelectCard(-1)}
@@ -162,7 +172,7 @@ function SkipBoGame() {
         {currentPlayer.discardPiles.map((pile, pIndex) => (
             <button
             key={`discard-${pIndex}`}
-            className={`${styles.card} ${pile[pile.length - 1]?.value === "SKIP" ? styles.cardSKIP : ""} ${
+            className={`${styles.card} ${getCardColorClass(pile[pile.length - 1]?.value ?? "") } ${
               selectedCardIndex === -(2 + pIndex) ? styles.cardSelected : ""
             } ${selectedDiscardTarget === pIndex ? styles.cardTarget : ""}`}
             onClick={() => handleSelectDiscardPile(pIndex)}
@@ -180,7 +190,7 @@ function SkipBoGame() {
         {currentPlayer.cards.map((card, index) => (
           <button
             key={card.id}
-            className={`${styles.card} ${card.value === "SKIP" ? styles.cardSKIP : ""} ${
+            className={`${styles.card} ${getCardColorClass(card.value)} ${
               selectedCardIndex === index ? styles.cardSelected : ""
             }`}
             onClick={() => handleSelectCard(index)}
@@ -241,7 +251,7 @@ function SkipBoBoard({
               )}
             </p>
             {pile.length > 0 && (
-              <div className={styles.card}>
+              <div className={`${styles.card} ${getCardColorClass(pile[pile.length - 1]?.value ?? "")}`}>
                 <span className={styles.cardValue}>{pile[pile.length - 1]?.value}</span>
               </div>
             )}
