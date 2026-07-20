@@ -14,11 +14,17 @@ describe("DashboardPage", () => {
 
     expect(screen.getByRole("heading", { name: "Digitale Brettspiele" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Tic-Tac-Toe" })).toBeInTheDocument();
-    expect(screen.getByText("2 Spieler")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "4 Gewinnt" })).toBeInTheDocument();
+    expect(screen.getAllByText("2 Spieler")).toHaveLength(2);
     expect(screen.getByText("Einfach")).toBeInTheDocument();
+    expect(screen.getByText("Mittel")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Tic-Tac-Toe oeffnen" })).toHaveAttribute(
       "href",
       "/games/tic-tac-toe",
+    );
+    expect(screen.getByRole("link", { name: "4 Gewinnt oeffnen" })).toHaveAttribute(
+      "href",
+      "/games/connect-four",
     );
     expect(screen.getByRole("link", { name: "Online spielen" })).toHaveAttribute(
       "href",
