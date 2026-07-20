@@ -210,7 +210,12 @@ export function applySkipBoMove(
 
   // Karte vom jeweiligen Ort entfernen und auf Foundation legen
   if (playingFromStock) {
-    newState.board.foundationPiles[move.foundationIndex].push(card);
+    // Use the cloned newPlayer.visibleStock (from newState) to avoid referencing original-state objects
+    const played = newPlayer.visibleStock;
+    if (!played) {
+      throw new Error("Keine Karte zum Spielen vorhanden.");
+    }
+    newState.board.foundationPiles[move.foundationIndex].push(played);
     newPlayer.visibleStock = newPlayer.stockPile.length > 0 ? newPlayer.stockPile.pop()! : null;
   } else if (playingFromDiscard) {
     const pileIndex = -(move.cardIndex + 2);
@@ -221,9 +226,11 @@ export function applySkipBoMove(
     const removed = newPlayer.cards.splice(move.cardIndex, 1)[0];
     newState.board.foundationPiles[move.foundationIndex].push(removed);
   }
-
+ 
   // Update direction and nextNeeded based on played card and previous state
-  const playedValue = card.value;
+  const playedValue = newState.board.foundationPiles[move.foundationIndex][
+    newState.board.foundationPiles[move.foundationIndex].length - 1
+  ].value;
   // If pile was empty, set direction when starting with 1 -> up, 12 -> down.
   // If SKIP started the pile previously, we may be resolving that awaitingChoice now by playing 2 or 11.
   const wasAwaitingChoice = state.board.foundationAwaitingChoice[move.foundationIndex];
