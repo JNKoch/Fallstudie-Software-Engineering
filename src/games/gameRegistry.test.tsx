@@ -4,7 +4,7 @@ import { gameRegistry, getGameById } from "./gameRegistry";
 
 describe("gameRegistry", () => {
   it("contains board game metadata for the dashboard", () => {
-    expect(gameRegistry).toHaveLength(2);
+    expect(gameRegistry).toHaveLength(3);
     expect(gameRegistry).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -12,6 +12,12 @@ describe("gameRegistry", () => {
           title: "Tic-Tac-Toe",
           playerCount: "2 Spieler",
           difficulty: "easy",
+        }),
+        expect.objectContaining({
+          id: "skip-bo",
+          title: "Skip-Bo",
+          playerCount: "2-6 Spieler",
+          difficulty: "medium",
         }),
         expect.objectContaining({
           id: "connect-four",
