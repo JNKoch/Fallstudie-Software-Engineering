@@ -217,7 +217,9 @@ function SkipBoBoard({
         {state.board.foundationPiles.map((pile, foundationIndex) => (
           <button
             key={foundationIndex}
-            className={`${styles.stapel} ${selectedCardIndex !== null ? styles.stapelSelectable : ""}`}
+            className={`${styles.stapel} ${selectedCardIndex !== null ? styles.stapelSelectable : ""} ${
+              state.board.foundationAwaitingChoice[foundationIndex] ? styles.stapelAwaiting : ""
+            }`}
             onClick={() => {
               if (selectedCardIndex !== null && onPlayCard) {
                 onPlayCard(foundationIndex);
