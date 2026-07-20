@@ -309,10 +309,24 @@ export function applySkipBoMove(
       // numeric card played
       if (dir === "down") {
         const nextValue = Number(playedValue) - 1;
-        newState.board.nextNeededValue[move.foundationIndex] = nextValue < 1 ? 12 : nextValue;
+        if (nextValue < 1) {
+          // Sequence complete (12→1 down), clear the pile
+          newState.board.foundationPiles[move.foundationIndex] = [];
+          newState.board.nextNeededValue[move.foundationIndex] = null;
+          newState.board.foundationDirections[move.foundationIndex] = null;
+        } else {
+          newState.board.nextNeededValue[move.foundationIndex] = nextValue;
+        }
       } else {
         const nextValue = Number(playedValue) + 1;
-        newState.board.nextNeededValue[move.foundationIndex] = nextValue > 12 ? 1 : nextValue;
+        if (nextValue > 12) {
+          // Sequence complete (1→12 up), clear the pile
+          newState.board.foundationPiles[move.foundationIndex] = [];
+          newState.board.nextNeededValue[move.foundationIndex] = null;
+          newState.board.foundationDirections[move.foundationIndex] = null;
+        } else {
+          newState.board.nextNeededValue[move.foundationIndex] = nextValue;
+        }
       }
     }
   }
