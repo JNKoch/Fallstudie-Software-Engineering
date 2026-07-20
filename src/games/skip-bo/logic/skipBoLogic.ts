@@ -204,26 +204,40 @@ export function applySkipBoMove(
   return newState;
 }
 
-export function drawCard(state: SkipBoState, playerIndex: number): SkipBoState {
+/**
+ * End the current player's turn and start the next player's turn.
+ * At the start of the incoming player's turn, ensure their hand is topped up to 5 cards.
+ */
+export function endTurn(state: SkipBoState, playerIndex: number): SkipBoState {
   if (playerIndex !== state.currentPlayerIndex) {
     throw new Error("Spieler sind nicht am Zug.");
   }
 
   const newState = JSON.parse(JSON.stringify(state)) as SkipBoState;
-  const player = newState.players[playerIndex];
+  // advance to next player
+  newState.currentPlayerIndex = (newState.currentPlayerIndex + 1) % newState.players.length;
 
-  // Ziehe von stockPile in die Hand (wie vorher), falls vorhanden
-  if (player.stockPile.length > 0) {
-    const card = player.stockPile.pop();
-    if (card) {
-      player.cards.push(card);
+  const nextPlayer = newState.players[newState.currentPlayerIndex];
+  // Refill next player's hand up to 5 cards.
+  while (nextPlayer.cards.length < 5) {
+    if (nextPlayer.stockPile.length > 0) {
+      const card = nextPlayer.stockPile.pop();
+      if (card) {
+        nextPlayer.cards.push(card);
+        continue;
+      }
     }
-  } else if (player.visibleStock) {
-    // Falls nur visibleStock vorhanden ist (und stockPile leer), kann diese in die Hand gezogen werden
-    player.cards.push(player.visibleStock);
-    player.visibleStock = null;
+
+    // If no more cards in stockPile but a visibleStock exists, move it into hand
+    if (nextPlayer.visibleStock) {
+      nextPlayer.cards.push(nextPlayer.visibleStock);
+      nextPlayer.visibleStock = nextPlayer.stockPile.length > 0 ? nextPlayer.stockPile.pop()! : null;
+      continue;
+    }
+
+    // Nothing left to draw
+    break;
   }
 
-  newState.currentPlayerIndex = (newState.currentPlayerIndex + 1) % newState.players.length;
   return newState;
 }

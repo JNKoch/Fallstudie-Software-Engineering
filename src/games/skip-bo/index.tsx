@@ -4,7 +4,7 @@ import type { BoardGameModule } from "../types";
 import {
   applySkipBoMove,
   createInitialSkipBoState,
-  drawCard,
+  endTurn,
   type SkipBoState,
 } from "./logic/skipBoLogic";
 import styles from "./styles/SkipBo.module.css";
@@ -46,12 +46,12 @@ function SkipBoGame() {
     handlePlayCard(selectedCardIndex, foundationIndex);
   }
 
-  function handleDrawCard() {
+  function handleEndTurn() {
     try {
       setError("");
-      setState((currentState) => drawCard(currentState, currentState.currentPlayerIndex));
+      setState((currentState) => endTurn(currentState, currentState.currentPlayerIndex));
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Karte konnte nicht gezogen werden.");
+      setError(nextError instanceof Error ? nextError.message : "Zug konnte nicht beendet werden.");
     }
   }
 
@@ -84,8 +84,8 @@ function SkipBoGame() {
           Neues Spiel
         </button>
         {state.status === "playing" && (
-          <button className={styles.resetButton} onClick={handleDrawCard} type="button">
-            Karte ziehen
+          <button className={styles.resetButton} onClick={handleEndTurn} type="button">
+            Ende Zug
           </button>
         )}
       </div>
