@@ -351,6 +351,7 @@ export function applySkipBoMove(
           newState.board.foundationPiles[move.foundationIndex] = [];
           newState.board.nextNeededValue[move.foundationIndex] = null;
           newState.board.foundationDirections[move.foundationIndex] = null;
+          newState.board.foundationAwaitingChoice[move.foundationIndex] = false;
         } else {
           newState.board.nextNeededValue[move.foundationIndex] = nextValue;
         }
@@ -361,6 +362,7 @@ export function applySkipBoMove(
           newState.board.foundationPiles[move.foundationIndex] = [];
           newState.board.nextNeededValue[move.foundationIndex] = null;
           newState.board.foundationDirections[move.foundationIndex] = null;
+          newState.board.foundationAwaitingChoice[move.foundationIndex] = false;
         } else {
           newState.board.nextNeededValue[move.foundationIndex] = nextValue;
         }
