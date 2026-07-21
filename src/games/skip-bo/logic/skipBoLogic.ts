@@ -69,7 +69,7 @@ function createDeck(): Card[] {
 
 /**
  * Deep clone a SkipBoState using explicit object construction instead of JSON serialization.
- * This ensures arrays are properly isolated between clones.
+ * This ensures all nested arrays and card objects are properly isolated between clones.
  */
 function cloneSkipBoState(state: SkipBoState): SkipBoState {
   return {
@@ -79,13 +79,13 @@ function cloneSkipBoState(state: SkipBoState): SkipBoState {
     message: state.message,
     players: state.players.map((player) => ({
       id: player.id,
-      cards: [...player.cards],
-      stockPile: [...player.stockPile],
+      cards: player.cards.map((card) => ({ ...card })),
+      stockPile: player.stockPile.map((card) => ({ ...card })),
       visibleStock: player.visibleStock ? { ...player.visibleStock } : null,
-      discardPiles: player.discardPiles.map((pile) => [...pile]),
+      discardPiles: player.discardPiles.map((pile) => pile.map((card) => ({ ...card }))),
     })),
     board: {
-      foundationPiles: state.board.foundationPiles.map((pile) => [...pile]),
+      foundationPiles: state.board.foundationPiles.map((pile) => pile.map((card) => ({ ...card }))),
       nextNeededValue: [...state.board.nextNeededValue],
       foundationDirections: [...state.board.foundationDirections],
       foundationAwaitingChoice: [...state.board.foundationAwaitingChoice],
