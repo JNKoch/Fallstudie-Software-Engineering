@@ -67,6 +67,32 @@ function createDeck(): Card[] {
   return deck.sort(() => Math.random() - 0.5);
 }
 
+/**
+ * Deep clone a SkipBoState using explicit object construction instead of JSON serialization.
+ * This ensures arrays are properly isolated between clones.
+ */
+function cloneSkipBoState(state: SkipBoState): SkipBoState {
+  return {
+    status: state.status,
+    currentPlayerIndex: state.currentPlayerIndex,
+    winner: state.winner,
+    message: state.message,
+    players: state.players.map((player) => ({
+      id: player.id,
+      cards: [...player.cards],
+      stockPile: [...player.stockPile],
+      visibleStock: player.visibleStock ? { ...player.visibleStock } : null,
+      discardPiles: player.discardPiles.map((pile) => [...pile]),
+    })),
+    board: {
+      foundationPiles: state.board.foundationPiles.map((pile) => [...pile]),
+      nextNeededValue: [...state.board.nextNeededValue],
+      foundationDirections: [...state.board.foundationDirections],
+      foundationAwaitingChoice: [...state.board.foundationAwaitingChoice],
+    },
+  };
+}
+
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -88,7 +114,7 @@ export function createInitialSkipBoState(playerCount: number = 2): SkipBoState {
     }
 
     const stockPile: Card[] = [];
-    const stockSize = 10; // Jeder Spieler erhält nun genau 10 Karten im Startstapel
+    const stockSize = 11; // Nach pop() bleiben 10 Karten im Stapel
     for (let j = 0; j < stockSize; j++) {
       if (deckIndex < deck.length) {
         stockPile.push(deck[deckIndex++]);
@@ -203,7 +229,7 @@ export function applySkipBoMove(
   const skipCountOnPile = pile.filter((c) => c.value === "SKIP").length;
 
   if (!canPlayCard(card.value, nextNeeded, direction, awaitingChoice, skipCountOnPile)) {
-    const failedState = JSON.parse(JSON.stringify(state)) as SkipBoState;
+    const failedState = cloneSkipBoState(state);
     if (awaitingChoice) {
       const decisionHigh = skipCountOnPile + 1;
       const decisionLow = 12 - skipCountOnPile;
@@ -222,7 +248,7 @@ export function applySkipBoMove(
     return failedState;
   }
 
-  const newState = JSON.parse(JSON.stringify(state)) as SkipBoState;
+  const newState = cloneSkipBoState(state);
   const newPlayer = newState.players[move.playerIndex];
 
   // Karte vom jeweiligen Ort entfernen und auf Foundation legen
@@ -369,7 +395,7 @@ export function discardHandCardAndEndTurn(
     throw new Error("Ungültiger Ablage-Stapel.");
   }
 
-  const newState = JSON.parse(JSON.stringify(state)) as SkipBoState;
+  const newState = cloneSkipBoState(state);
   const player = newState.players[playerIndex];
 
   const card = player.cards.splice(handCardIndex, 1)[0];
@@ -411,7 +437,7 @@ export function endTurn(state: SkipBoState, playerIndex: number): SkipBoState {
     throw new Error("Spieler sind nicht am Zug.");
   }
 
-  const newState = JSON.parse(JSON.stringify(state)) as SkipBoState;
+  const newState = cloneSkipBoState(state);
   // advance to next player
   newState.currentPlayerIndex = (newState.currentPlayerIndex + 1) % newState.players.length;
 
