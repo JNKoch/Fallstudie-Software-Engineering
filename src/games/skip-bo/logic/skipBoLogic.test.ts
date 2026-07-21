@@ -6,9 +6,20 @@ import {
   createInitialSkipBoState,
   discardHandCardAndEndTurn,
   endTurn,
+  INITIAL_DRAW_PILE_SIZE,
 } from "./skipBoLogic";
 
 describe("skipBoLogic", () => {
+  it("startet mit zehn Karten pro Spielerstapel und 500 Nachziehkarten", () => {
+    const state = createInitialSkipBoState();
+
+    expect(state.drawPile).toHaveLength(INITIAL_DRAW_PILE_SIZE);
+    for (const player of state.players) {
+      expect(player.stockPile).toHaveLength(9);
+      expect(player.visibleStock).not.toBeNull();
+    }
+  });
+
   it("zieht beim Spielerwechsel nur vom gemeinsamen Nachziehstapel", () => {
     const state = createInitialSkipBoState();
     const incomingPlayer = state.players[1];
@@ -45,7 +56,7 @@ describe("skipBoLogic", () => {
 
       expect(state.players).toHaveLength(playerCount);
       expect(addedPlayer.cards).toHaveLength(5);
-      expect(addedPlayer.stockPile).toHaveLength(10);
+      expect(addedPlayer.stockPile).toHaveLength(9);
       expect(addedPlayer.visibleStock).not.toBeNull();
     }
 

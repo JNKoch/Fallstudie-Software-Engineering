@@ -48,29 +48,23 @@ export interface SkipBoMove {
 
 export const MAX_SKIP_BO_PLAYERS = 6;
 const HAND_SIZE = 5;
-const STOCK_SIZE = 11;
+const STOCK_SIZE = 10;
+export const INITIAL_DRAW_PILE_SIZE = 500;
 
-function createDeck(): Card[] {
+function createDeck(cardCount: number): Card[] {
   const deck: Card[] = [];
-  let id = 0;
-  
-  for (let i = 1; i <= 12; i++) {
-    for (let j = 0; j < 8; j++) {
-      deck.push({
-        id: `card-${id++}`,
-        value: String(i) as CardValue,
-      });
-    }
-  }
-  
-  for (let i = 0; i < 18; i++) {
+  const cardValues: CardValue[] = [
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "SKIP", "SKIP",
+  ];
+
+  for (let index = 0; index < cardCount; index += 1) {
     deck.push({
-      id: `card-skip-${i}`,
-      value: "SKIP",
+      id: `card-${index}`,
+      value: cardValues[index % cardValues.length],
     });
   }
-  
-  return deck.sort(() => Math.random() - 0.5);
+
+  return shuffleArray(deck);
 }
 
 /**
@@ -110,7 +104,7 @@ function shuffleArray<T>(array: T[]): T[] {
 }
 
 export function createInitialSkipBoState(playerCount: number = 2): SkipBoState {
-  const deck = createDeck();
+  const deck = createDeck(INITIAL_DRAW_PILE_SIZE + playerCount * (HAND_SIZE + STOCK_SIZE));
   let deckIndex = 0;
 
   const players: PlayerHand[] = [];
@@ -121,7 +115,7 @@ export function createInitialSkipBoState(playerCount: number = 2): SkipBoState {
     }
 
     const stockPile: Card[] = [];
-    const stockSize = STOCK_SIZE; // Nach pop() bleiben 10 Karten im Stapel
+    const stockSize = STOCK_SIZE; // Nach pop() bleiben 9 verdeckte Karten im Stapel
     for (let j = 0; j < stockSize; j++) {
       if (deckIndex < deck.length) {
         stockPile.push(deck[deckIndex++]);
