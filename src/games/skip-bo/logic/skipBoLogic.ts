@@ -190,11 +190,24 @@ export function applySkipBoMove(
 
   const player = state.players[move.playerIndex];
 
-  // move.cardIndex === -1 bedeutet: oberste Karte des Stock-Piles (visibleStock) spielen
+  // move.cardIndex encoding:
+  // >= 0 : index in hand
+  // -1 : visibleStock
+  // <= -2 : discard pile (pileIndex = -(cardIndex + 2))
   const playingFromStock = move.cardIndex === -1;
+  const playingFromDiscard = move.cardIndex <= -2;
 
-  if (!playingFromStock && (move.cardIndex < 0 || move.cardIndex >= player.cards.length)) {
+  // Validate hand card index (only for positive values)
+  if (!playingFromStock && !playingFromDiscard && (move.cardIndex < 0 || move.cardIndex >= player.cards.length)) {
     throw new Error("Ungültige Kartennummer.");
+  }
+
+  // Validate discard pile index
+  if (playingFromDiscard) {
+    const pileIndex = -(move.cardIndex + 2);
+    if (pileIndex < 0 || pileIndex >= 4) {
+      throw new Error("Ungültiger Ablage-Stapel.");
+    }
   }
 
   if (move.foundationIndex < 0 || move.foundationIndex >= 4) {
@@ -202,15 +215,13 @@ export function applySkipBoMove(
   }
 
   let card: Card | undefined;
-  let playingFromDiscard = false;
   if (playingFromStock) {
     card = player.visibleStock ?? undefined;
-  } else if (move.cardIndex <= -2) {
+  } else if (playingFromDiscard) {
     // discard pile source
     const pileIndex = -(move.cardIndex + 2);
     const pile = player.discardPiles[pileIndex];
     card = pile && pile.length > 0 ? pile[pile.length - 1] : undefined;
-    playingFromDiscard = true;
   } else {
     card = player.cards[move.cardIndex];
   }
