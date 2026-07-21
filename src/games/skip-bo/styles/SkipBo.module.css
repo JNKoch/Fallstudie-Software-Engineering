@@ -18,10 +18,51 @@
 
 .status {
   padding: 1rem;
-  margin: 1rem 0;
+  margin: 0;
   background: #f0f0f0;
   border-radius: 4px;
   font-weight: 500;
+}
+
+.statusPanel {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.playerTable {
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.playerTable th,
+.playerTable td {
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+.playerTable thead {
+  background: #f0f0f0;
+}
+
+.playerTable tbody tr:last-child th,
+.playerTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.currentPlayerRow {
+  background: #e3f2fd;
+}
+
+@media (max-width: 640px) {
+  .statusPanel {
+    flex-direction: column;
+  }
 }
 
 .actions {
