@@ -27,6 +27,8 @@ export type SkipBoStatus = "playing" | "won" | "draw";
 
 export interface SkipBoState {
   players: PlayerHand[];
+  /** Gemeinsamer Nachziehstapel zum Auffüllen der Handkarten. */
+  drawPile: Card[];
   board: GameBoard;
   currentPlayerIndex: number;
   status: SkipBoStatus;
@@ -77,6 +79,7 @@ function cloneSkipBoState(state: SkipBoState): SkipBoState {
     currentPlayerIndex: state.currentPlayerIndex,
     winner: state.winner,
     message: state.message,
+    drawPile: state.drawPile.map((card) => ({ ...card })),
     players: state.players.map((player) => ({
       id: player.id,
       cards: player.cards.map((card) => ({ ...card })),
@@ -135,6 +138,10 @@ export function createInitialSkipBoState(playerCount: number = 2): SkipBoState {
 
   return {
     players,
+    // Alle nicht ausgeteilten Karten bilden den gemeinsamen Nachziehstapel.
+    // Der persönliche Spielerstapel darf ausschließlich durch Ausspielen seiner
+    // sichtbaren Karte kleiner werden.
+    drawPile: deck.slice(deckIndex),
     board: {
       foundationPiles: Array(4).fill(null).map(() => []),
       nextNeededValue: [null, null, null, null],
@@ -381,7 +388,7 @@ export function applySkipBoMove(
 
   // Wenn alle Handkarten innerhalb desselben Zuges gespielt wurden, fülle die Hand automatisch auf 5 auf.
   if (newPlayer.cards.length === 0) {
-    refillHand(newPlayer);
+    refillHand(newPlayer, newState.drawPile);
   }
 
   newState.message = "";
@@ -419,25 +426,12 @@ export function discardHandCardAndEndTurn(
 }
 
 /**
- * Refill a player's hand up to 5 cards by drawing from stockPile or using visibleStock.
+ * Refill a player's hand up to 5 cards from the shared draw pile.
+ * The personal stock pile is never used to replenish a hand.
  */
-function refillHand(player: PlayerHand) {
-  while (player.cards.length < 5) {
-    if (player.stockPile.length > 0) {
-      const card = player.stockPile.pop();
-      if (card) {
-        player.cards.push(card);
-        continue;
-      }
-    }
-
-    if (player.visibleStock) {
-      player.cards.push(player.visibleStock);
-      player.visibleStock = player.stockPile.length > 0 ? player.stockPile.pop()! : null;
-      continue;
-    }
-
-    break;
+function refillHand(player: PlayerHand, drawPile: Card[]) {
+  while (player.cards.length < 5 && drawPile.length > 0) {
+    player.cards.push(drawPile.pop()!);
   }
 }
 
@@ -455,8 +449,8 @@ export function endTurn(state: SkipBoState, playerIndex: number): SkipBoState {
   newState.currentPlayerIndex = (newState.currentPlayerIndex + 1) % newState.players.length;
 
   const nextPlayer = newState.players[newState.currentPlayerIndex];
-  // Refill next player's hand up to 5 cards.
-  refillHand(nextPlayer);
+  // Refill next player's hand from the common draw pile.
+  refillHand(nextPlayer, newState.drawPile);
 
   return newState;
 }
