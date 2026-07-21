@@ -3,8 +3,10 @@ import { useState } from "react";
 import type { BoardGameModule } from "../types";
 import {
   applySkipBoMove,
+  addSkipBoPlayer,
   createInitialSkipBoState,
   endTurn,
+  MAX_SKIP_BO_PLAYERS,
   discardHandCardAndEndTurn,
   type SkipBoState,
 } from "./logic/skipBoLogic";
@@ -115,6 +117,17 @@ function SkipBoGame() {
     setState(createInitialSkipBoState(2));
   }
 
+  function handleAddPlayer() {
+    try {
+      setError("");
+      setState((currentState) => addSkipBoPlayer(currentState));
+      setSelectedCardIndex(null);
+      setSelectedDiscardTarget(null);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Spieler konnte nicht hinzugefügt werden.");
+    }
+  }
+
   return (
     <section className={styles.skipBo} aria-labelledby="skip-bo-title">
       <h2 id="skip-bo-title" className={styles.title}>
@@ -127,7 +140,28 @@ function SkipBoGame() {
         Lokales Spiel für zwei Spieler auf einem Gerät.
       </p>
 
-      <p className={styles.status}>{statusText}</p>
+      <div className={styles.statusPanel}>
+        <p className={styles.status}>{statusText}</p>
+        <table className={styles.playerTable} aria-label="Stapelbestand aller Spieler">
+          <thead>
+            <tr>
+              <th scope="col">Spieler</th>
+              <th scope="col">Stapelbestand</th>
+            </tr>
+          </thead>
+          <tbody>
+            {state.players.map((player, playerIndex) => (
+              <tr
+                className={playerIndex === state.currentPlayerIndex ? styles.currentPlayerRow : undefined}
+                key={player.id}
+              >
+                <th scope="row">Spieler {playerIndex + 1}</th>
+                <td>{player.stockPile.length + (player.visibleStock ? 1 : 0)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {selectedCardIndex !== null && (
         <p className={styles.info}>
           Karte ausgewählt. Klicke auf einen Stapel, um die Karte zu spielen.
@@ -137,6 +171,14 @@ function SkipBoGame() {
       <div className={styles.actions}>
         <button className={styles.resetButton} onClick={handleReset} type="button">
           Neues Spiel
+        </button>
+        <button
+          className={styles.resetButton}
+          onClick={handleAddPlayer}
+          type="button"
+          disabled={state.players.length >= MAX_SKIP_BO_PLAYERS || state.status !== "playing"}
+        >
+          Spieler hinzufügen
         </button>
         {state.status === "playing" && (
           <button className={styles.resetButton} onClick={handleEndTurn} type="button">

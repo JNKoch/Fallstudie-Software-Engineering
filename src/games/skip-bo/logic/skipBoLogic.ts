@@ -46,6 +46,10 @@ export interface SkipBoMove {
   foundationIndex: number;
 }
 
+export const MAX_SKIP_BO_PLAYERS = 6;
+const HAND_SIZE = 5;
+const STOCK_SIZE = 11;
+
 function createDeck(): Card[] {
   const deck: Card[] = [];
   let id = 0;
@@ -112,12 +116,12 @@ export function createInitialSkipBoState(playerCount: number = 2): SkipBoState {
   const players: PlayerHand[] = [];
   for (let i = 0; i < playerCount; i++) {
     const hand: Card[] = [];
-    for (let j = 0; j < 5; j++) {
+    for (let j = 0; j < HAND_SIZE; j++) {
       hand.push(deck[deckIndex++]);
     }
 
     const stockPile: Card[] = [];
-    const stockSize = 11; // Nach pop() bleiben 10 Karten im Stapel
+    const stockSize = STOCK_SIZE; // Nach pop() bleiben 10 Karten im Stapel
     for (let j = 0; j < stockSize; j++) {
       if (deckIndex < deck.length) {
         stockPile.push(deck[deckIndex++]);
@@ -153,6 +157,33 @@ export function createInitialSkipBoState(playerCount: number = 2): SkipBoState {
     winner: null,
     message: "Spiel gestartet!",
   };
+}
+
+/** Fügt einen weiteren Spieler mit Hand- und Spielerstapel hinzu. */
+export function addSkipBoPlayer(state: SkipBoState): SkipBoState {
+  if (state.players.length >= MAX_SKIP_BO_PLAYERS) {
+    throw new Error(`Es können maximal ${MAX_SKIP_BO_PLAYERS} Spieler teilnehmen.`);
+  }
+
+  const requiredCards = HAND_SIZE + STOCK_SIZE;
+  if (state.drawPile.length < requiredCards) {
+    throw new Error("Nicht genügend Karten, um einen weiteren Spieler hinzuzufügen.");
+  }
+
+  const newState = cloneSkipBoState(state);
+  const cards = Array.from({ length: HAND_SIZE }, () => newState.drawPile.pop()!);
+  const stockCards = Array.from({ length: STOCK_SIZE }, () => newState.drawPile.pop()!);
+
+  newState.players.push({
+    id: `player-${newState.players.length}`,
+    cards,
+    stockPile: stockCards.slice(0, -1),
+    visibleStock: stockCards[stockCards.length - 1],
+    discardPiles: [[], [], [], []],
+  });
+  newState.message = `Spieler ${newState.players.length} wurde hinzugefügt.`;
+
+  return newState;
 }
 
 export function canPlayCard(
@@ -342,12 +373,17 @@ export function applySkipBoMove(
   } else {
     const dir = newState.board.foundationDirections[move.foundationIndex];
     if (playedValue === "SKIP") {
-      if (dir === "down") {
-        const nextValue = (Number(nextNeeded) - 1) < 1 ? 12 : Number(nextNeeded) - 1;
-        newState.board.nextNeededValue[move.foundationIndex] = nextValue;
+      const completesPile = (dir === "down" && nextNeeded === 1) || (dir !== "down" && nextNeeded === 12);
+      if (completesPile) {
+        // Die SKIP-Karte ersetzt die letzte Zahl der Folge und beendet den Stapel.
+        newState.board.foundationPiles[move.foundationIndex] = [];
+        newState.board.nextNeededValue[move.foundationIndex] = null;
+        newState.board.foundationDirections[move.foundationIndex] = null;
+        newState.board.foundationAwaitingChoice[move.foundationIndex] = false;
+      } else if (dir === "down") {
+        newState.board.nextNeededValue[move.foundationIndex] = Number(nextNeeded) - 1;
       } else {
-        const nextValue = (Number(nextNeeded) + 1) > 12 ? 1 : Number(nextNeeded) + 1;
-        newState.board.nextNeededValue[move.foundationIndex] = nextValue;
+        newState.board.nextNeededValue[move.foundationIndex] = Number(nextNeeded) + 1;
       }
     } else {
       // numeric card played
